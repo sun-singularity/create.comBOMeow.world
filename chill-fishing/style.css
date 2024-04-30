@@ -1,0 +1,103 @@
+body {
+    width: 1920px;
+    height: 1200px;
+    margin: 0;
+    background-image: url('bg.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    position: relative;
+}
+
+#game-container {
+    position: relative;
+    width: 1920px;
+    height: 1200px;
+    margin: auto;
+}
+
+@keyframes catCatch {
+    0%, 100% {
+        top: 365px;  /* Original position */
+    }
+    50% {
+        top: 465px;  /* Move down towards Grid 9 */
+    }
+}
+
+#cat {
+    position: absolute;
+    top: 365px;
+    left: 725px;
+    width: 500px;
+    height: 488px;
+    background-image: url('cat.png');
+    background-size: cover;
+    z-index: 20;
+    animation-name: none;  /* No animation initially */
+    animation-duration: 0.5s; /* Speed of animation */
+    animation-fill-mode: forwards; /* Keeps the cat at the end frame after animation */
+}
+.grid {
+    width: 199px;
+    height: 198px;
+    position: absolute;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+/* You will need to position these using top/left properties based on your layout */
+#grid0 { top: 110px; left: 350px; }
+#grid1 { top: 110px; left: 575px; }
+#grid2 { top: 110px; left: 860px; }
+#grid3 { top: 110px; left: 1145px; }
+#grid4 { top: 110px; left: 1420px; }
+#grid5 { top: 350px; left: 1420px; }
+#grid6 { top: 590px; left: 1420px; }
+#grid7 { top: 840px; left: 1420px; }
+#grid8 { top: 840px; left: 1145px; }
+#grid9 { top: 840px; left: 860px; }
+#grid10 { top: 840px; left: 575px; }
+#grid11 { top: 840px; left: 350px; }
+#grid12 { top: 590px; left: 350px; }
+#grid13 { top: 350px; left: 350px; }
+
+#level-display {
+    text-align: center;
+    position: absolute;
+    bottom: 60px;
+    left: 870px;
+    color: white;
+    font-size: 60px;
+}
+
+
+/*redeem flow*/
+.hidden {
+    display: none;
+}
+
+#prize-popup {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* RGBA is CSS3 but widely supported, including in Android WebView */
+    display: block; /* Switch from flex to block for CSS2 compatibility */
+    text-align: center; /* Centering content horizontally for block elements */
+    color: white;
+    font-size: 20px;
+    z-index:999;
+}
+
+#popup-content {
+    position: relative; /* Needed to vertically align */
+    top: 50%; /* Move down by 50% of the height */
+    transform: translateY(-50%); /* Shift up by 50% of its own height to center vertically */
+    background: navy;
+    padding: 20px;
+    border-radius: 10px; /* Border-radius is CSS3 but widely supported */
+    text-align: center;
+    width: auto; /* Set width as needed */
+    display: inline-block; /* Use inline-block for layout inside centered text-align */
+}
