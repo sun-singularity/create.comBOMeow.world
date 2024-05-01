@@ -17,28 +17,30 @@ body {
 
 @keyframes catCatch {
     0%, 100% {
-        top: 365px;  /* Original position */
+        top: 195px;  /* Original position */
     }
     50% {
-        top: 465px;  /* Move down towards Grid 9 */
+        top: 250px;  /* Move down towards Grid 9 */
     }
 }
 
 #cat {
     position: absolute;
-    top: 365px;
-    left: 725px;
-    width: 500px;
-    height: 488px;
-    background-image: url('cat.png');
-    background-size: cover;
+    top: 195px;
+    left: 825px;
+    width: 296px; /* width of one frame */
+    height: 305px;
+    background-image: url('cat_sprite.png');
+    background-size: 1184px 915px; 
     z-index: 20;
-    animation-name: none;  /* No animation initially */
-    animation-duration: 0.5s; /* Speed of animation */
-    animation-fill-mode: forwards; /* Keeps the cat at the end frame after animation */
+    animation-name: none;
+    animation-duration: 0.5s;
+    animation-fill-mode: forwards;
+    background-repeat: no-repeat;
 }
+
 .grid {
-    width: 199px;
+    width: 222px;
     height: 198px;
     position: absolute;
     background-repeat: no-repeat;
@@ -46,20 +48,23 @@ body {
 }
 
 /* You will need to position these using top/left properties based on your layout */
-#grid0 { top: 110px; left: 350px; }
-#grid1 { top: 110px; left: 575px; }
-#grid2 { top: 110px; left: 860px; }
-#grid3 { top: 110px; left: 1145px; }
-#grid4 { top: 110px; left: 1420px; }
-#grid5 { top: 350px; left: 1420px; }
-#grid6 { top: 590px; left: 1420px; }
-#grid7 { top: 840px; left: 1420px; }
-#grid8 { top: 840px; left: 1145px; }
-#grid9 { top: 840px; left: 860px; }
-#grid10 { top: 840px; left: 575px; }
-#grid11 { top: 840px; left: 350px; }
-#grid12 { top: 590px; left: 350px; }
-#grid13 { top: 350px; left: 350px; }
+#grid0 { top: 590px; left: 217px; }
+#grid1 { top: 680px; left: 430px; }
+#grid2 { top: 680px; left: 645px; }
+#grid3 { top: 680px; left: 860px; }
+#grid4 { top: 680px; left: 1075px; }
+#grid5 { top: 680px; left: 1290px; }
+#grid6 { top: 590px; left: 1500px; }
+#grid7 { top: 480px; left: 1290px; }
+#grid8 { top: 480px; left: 1075px; }
+#grid9 { top: 480px; left: 860px; }
+#grid10 { top: 480px; left: 645px; }
+#grid11 { top: 480px; left: 430px; }
+
+#grid1, #grid2, #grid3, #grid4, #grid5, #grid6 {
+    transform: scaleX(-1);  /* Flips the element horizontally */
+}
+
 
 #level-display {
     text-align: center;
