@@ -10,6 +10,11 @@ let gameInterval;  // Declare outside to manage its state globally
 let animateCatInterval;  // Declare outside to manage its state globally
 let catCatchTimeout;  // Declare outside to manage its state globally
 let accelerationFactor = 0.9; // Each level will speed up the game by 10%
+let prizeConfig = {
+    thirdPrizeThreshold: 5,
+    secondPrizeThreshold: 10,
+    firstPrizeThreshold: 11,
+};
 
 
 function updateGrids() {
@@ -123,27 +128,44 @@ function showConfigPopup() {
     document.getElementById('config-popup').style.display = 'block';
 }
 
-function updateAcceleration() {
-    const newFactor = parseFloat(document.getElementById('accel-factor').value);
-    if (newFactor >= 0.1 && newFactor <= 2) {
-        accelerationFactor = newFactor;
-        localStorage.setItem('accelerationFactor', accelerationFactor); // Store the factor in localStorage
-        updateGameSpeed(); // Update the game speed with the new factor
-        console.log(`Acceleration factor updated to ${accelerationFactor}`);
+function updateConfig() {
+    const newConfig = {
+        accelerationFactor: parseFloat(document.getElementById('accel-factor').value),
+        thirdPrizeThreshold: parseInt(document.getElementById('third-prize-threshold').value, 10),
+        secondPrizeThreshold: parseInt(document.getElementById('second-prize-threshold').value, 10),
+        firstPrizeThreshold: parseInt(document.getElementById('first-prize-threshold').value, 10)
+    };
+
+    if (newConfig.accelerationFactor >= 0.1 && newConfig.accelerationFactor <= 2) {
+        localStorage.setItem('gameConfig', JSON.stringify(newConfig)); // Store the config in localStorage
+        loadConfig(); // Reload configuration to apply changes
+        console.log("Configuration updated:", newConfig);
     } else {
-        alert("Please enter a valid acceleration factor between 0.1 and 2.");
+        alert("Please enter valid values for all configurations.");
     }
     document.getElementById('config-popup').style.display = 'none'; // Close the config popup
 }
+function loadConfig() {
+    const configString = localStorage.getItem('gameConfig');
+    if (configString) {
+        const config = JSON.parse(configString);
+        document.getElementById('accel-factor').value = config.accelerationFactor;
+        document.getElementById('third-prize-threshold').value = config.thirdPrizeThreshold;
+        document.getElementById('second-prize-threshold').value = config.secondPrizeThreshold;
+        document.getElementById('first-prize-threshold').value = config.firstPrizeThreshold;
 
-function loadSettings() {
-    // Check if accelerationFactor is stored in localStorage
-    if (localStorage.getItem('accelerationFactor')) {
-        accelerationFactor = parseFloat(localStorage.getItem('accelerationFactor'));
-        document.getElementById('accel-factor').value = accelerationFactor; // Update the input field
+        // Update global config variable
+        prizeConfig = config;
+
+        // Update game variables
+        accelerationFactor = config.accelerationFactor;
         updateGameSpeed(); // Update game speed based on stored factor
-        console.log(`Acceleration factor loaded: ${accelerationFactor}`);
+        console.log("Configuration loaded:", config);
     }
+
+    document.getElementById('display-first-prize').textContent = prizeConfig.firstPrizeThreshold;
+    document.getElementById('display-second-prize').textContent = prizeConfig.secondPrizeThreshold;
+    document.getElementById('display-third-prize').textContent = prizeConfig.thirdPrizeThreshold;
 }
 
 // Add event listener to level display to show config popup
@@ -159,11 +181,28 @@ document.getElementById('config-popup').addEventListener('click', function(event
 
 
 function triggerScanner() {
-    console.log("Scanner triggered"); // Diagnostic log
+    console.log("Scanner triggered");
+    const finalLevel = currentLevel - 1; // Assuming currentLevel increments before game over
+    let prizeMessage = "Got No Prize";
+    let scannerArgument = "noPrize";  // Default argument for the scanner
+
+    if (finalLevel >= prizeConfig.firstPrizeThreshold) {
+        prizeMessage = "Got First Prize!";
+        scannerArgument = "firstPrize";
+    } else if (finalLevel >= prizeConfig.secondPrizeThreshold) {
+        prizeMessage = "Got Second Prize!";
+        scannerArgument = "secondPrize";
+    } else if (finalLevel >= prizeConfig.thirdPrizeThreshold) {
+        prizeMessage = "Got Third Prize!";
+        scannerArgument = "thirdPrize";
+    }
+
+    alert(`Game Over! ${prizeMessage}`);
+
     if (window.Android) {
-        window.Android.startScanner("QWERTYZXCVBN");
+        window.Android.startScanner(scannerArgument); // Pass the specific prize argument to Android
     } else {
-        alert("Game Over");
+        console.log(prizeMessage); // Log prize message if not running on Android
     }
 }
 
@@ -178,7 +217,7 @@ document.addEventListener('keydown', function(event) {
     }
 });
 window.onload = function() {
-    loadSettings(); 
+    loadConfig();
     updateGridVisuals();
     startGame();
     animateCat();
