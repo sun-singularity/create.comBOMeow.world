@@ -121,7 +121,7 @@ function startGame() {
 function triggerScanner() {
     console.log("Scanner triggered"); // Diagnostic log
     if (window.Android) {
-        window.Android.startScanner();
+        window.Android.startScanner("QWERTYZXCVBN");
     } else {
         alert("Game Over");
     }
