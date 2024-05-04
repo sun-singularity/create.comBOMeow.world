@@ -9,7 +9,7 @@ gridContents[0] = false;  // Initial configuration without a fish in grid 0
 let gameInterval;  // Declare outside to manage its state globally
 let animateCatInterval;  // Declare outside to manage its state globally
 let catCatchTimeout;  // Declare outside to manage its state globally
-const accelerationFactor = 0.9; // Each level will speed up the game by 10%
+let accelerationFactor = 0.9; // Each level will speed up the game by 10%
 
 
 function updateGrids() {
@@ -118,6 +118,46 @@ function startGame() {
     }
 }
 
+/* config */
+function showConfigPopup() {
+    document.getElementById('config-popup').style.display = 'block';
+}
+
+function updateAcceleration() {
+    const newFactor = parseFloat(document.getElementById('accel-factor').value);
+    if (newFactor >= 0.1 && newFactor <= 2) {
+        accelerationFactor = newFactor;
+        localStorage.setItem('accelerationFactor', accelerationFactor); // Store the factor in localStorage
+        updateGameSpeed(); // Update the game speed with the new factor
+        console.log(`Acceleration factor updated to ${accelerationFactor}`);
+    } else {
+        alert("Please enter a valid acceleration factor between 0.1 and 2.");
+    }
+    document.getElementById('config-popup').style.display = 'none'; // Close the config popup
+}
+
+function loadSettings() {
+    // Check if accelerationFactor is stored in localStorage
+    if (localStorage.getItem('accelerationFactor')) {
+        accelerationFactor = parseFloat(localStorage.getItem('accelerationFactor'));
+        document.getElementById('accel-factor').value = accelerationFactor; // Update the input field
+        updateGameSpeed(); // Update game speed based on stored factor
+        console.log(`Acceleration factor loaded: ${accelerationFactor}`);
+    }
+}
+
+// Add event listener to level display to show config popup
+document.getElementById('level-display').addEventListener('click', function(event) {
+    event.stopPropagation(); // Prevent propagation to stop triggering checkGridNine
+    showConfigPopup();
+});
+
+// Ensure clicks on the config popup itself do not propagate
+document.getElementById('config-popup').addEventListener('click', function(event) {
+    event.stopPropagation();
+});
+
+
 function triggerScanner() {
     console.log("Scanner triggered"); // Diagnostic log
     if (window.Android) {
@@ -138,6 +178,7 @@ document.addEventListener('keydown', function(event) {
     }
 });
 window.onload = function() {
+    loadSettings(); 
     updateGridVisuals();
     startGame();
     animateCat();
