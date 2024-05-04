@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Game Result</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+        color: #333;
+    }
+    #message {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-align: center;
+        width: 80%;
+        max-width: 600px;
+    }
+</style>
+</head>
+<body>
+<div id="message"></div>
+
+<script>
+    function getQueryStringValue(key) {
+        return new URLSearchParams(window.location.search).get(key);
+    }
+
+    function displayResult() {
+        const scannerArgument = getQueryStringValue('s');
+        let message = "No Prize";
+        switch(scannerArgument) {
+            case "firstPrize":
+                message = "Congratulations! You've won the First Prize!";
+                break;
+            case "secondPrize":
+                message = "Great! You've won the Second Prize!";
+                break;
+            case "thirdPrize":
+                message = "Good job! You've won the Third Prize!";
+                break;
+            default:
+                message = "Try again to win a prize!";
+                break;
+        }
+        document.getElementById('message').innerText = message;
+    }
+
+    // Call displayResult on page load
+    window.onload = displayResult;
+</script>
+</body>
+</html>

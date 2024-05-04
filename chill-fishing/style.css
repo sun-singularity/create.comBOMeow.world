@@ -7,6 +7,28 @@ body {
     background-repeat: no-repeat;
     position: relative;
 }
+#prize-info {
+    display: flex;
+    justify-content: space-evenly; /* Evenly distribute the space between the blocks */
+    align-items: center; /* Center-align items vertically */
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 100;
+    font-size: 50px; /* Larger font size */
+}
+
+.prize-block {
+    flex: 1; /* Each block takes equal space */
+    text-align: center; /* Center the text within each block */
+}
+
+
 
 #game-container {
     position: relative;
