@@ -14,7 +14,7 @@
         background-color: #f0f0f0;
         color: #333;
     }
-    #message {
+    #result-container {
         background: white;
         padding: 20px;
         border-radius: 10px;
@@ -23,10 +23,18 @@
         width: 80%;
         max-width: 600px;
     }
+    img {
+        max-width: 100%;
+        height: auto;
+        margin-top: 20px;
+    }
 </style>
 </head>
 <body>
-<div id="message"></div>
+<div id="result-container">
+    <div id="message"></div>
+    <img id="result-image" src="" alt="Result Image">
+</div>
 
 <script>
     function getQueryStringValue(key) {
@@ -34,23 +42,31 @@
     }
 
     function displayResult() {
-        const scannerArgument = getQueryStringValue('s');
+        const scannerArgument = getQueryStringValue('scannerArgument');
         let message = "No Prize";
+        let imageName = "result_no_prize.jpg"; // default image
+
         switch(scannerArgument) {
             case "firstPrize":
                 message = "Congratulations! You've won the First Prize!";
+                imageName = "result_first_prize.jpg";
                 break;
             case "secondPrize":
                 message = "Great! You've won the Second Prize!";
+                imageName = "result_second_prize.jpg";
                 break;
             case "thirdPrize":
                 message = "Good job! You've won the Third Prize!";
+                imageName = "result_third_prize.jpg";
                 break;
             default:
                 message = "Try again to win a prize!";
+                imageName = "result_no_prize.jpg";
                 break;
         }
         document.getElementById('message').innerText = message;
+        document.getElementById('result-image').src = imageName;
+        document.getElementById('result-image').alt = message; // Update alt text for accessibility
     }
 
     // Call displayResult on page load
