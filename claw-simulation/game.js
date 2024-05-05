@@ -85,6 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
         draw();
     }, 1000 / 60);
 
+    canvas.addEventListener('click', () => {
+        clawMovingDown = !clawMovingDown;  // Toggle the movement of the claw
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === ' ') {
             clawMovingDown = !clawMovingDown; // This should toggle moving down, not claw open state
