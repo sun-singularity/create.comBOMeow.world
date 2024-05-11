@@ -57,6 +57,9 @@ function animateCatCatch(success) {
             cat.style.backgroundPosition = '-296px -305px'; // Second frame of second row - eating
             setTimeout(() => {
                 animateCat(); // Resume normal animation after the catch and eat sequence
+                showCatchDialog(true, () => {
+                    // Optionally place actions here if needed after showing success message
+                });
             }, 300); // Time for the eating frame
         }, 300); // Time for the catching frame
     } else {
@@ -69,6 +72,8 @@ function animateCatCatch(success) {
         }, 300); // Time for the fail start frame
     }
 }
+
+
 
 
 
@@ -96,16 +101,20 @@ function checkGridNine() {
             setTimeout(() => {
                 triggerScanner();
                 location.reload();
-            }, 3000);
-            showPrizePopup();
+            }, 6000);
+            showCatchDialog(true, () => {
+                showPrizePopup(); // Show prize popup after showing fail dialog
+             });
         }
     } else {
         animateCatCatch(false); // Use failing animation for failure
         setTimeout(() => {
             triggerScanner();
             location.reload();
-        }, 3000);
-        showPrizePopup();
+        }, 6000);
+        showCatchDialog(false, () => {
+           showPrizePopup(); // Show prize popup after showing fail dialog
+        });
     }
 }
 
@@ -205,6 +214,35 @@ function triggerScanner() {
         console.log(prizeMessage); // Log prize message if not running on Android
     }
 }
+
+function showCatchDialog(success, callback) {
+    const dialog = document.getElementById('catch-dialog');
+    const image = document.getElementById('catch-result-image');
+    const message = document.getElementById('catch-dialog-message');
+
+    // Set image and message based on success
+    if (success) {
+        image.src = 'happy.png'; // Ensure you have 'happy.png' in your assets
+        message.textContent = 'Catch Success!';
+    } else {
+        image.src = 'sad.png'; // Ensure you have 'sad.png' in your assets
+        message.textContent = 'Catch Fail';
+    }
+
+    // Display the dialog
+    dialog.style.display = 'block';
+
+    // Hide the dialog after 3 seconds and call the callback
+    setTimeout(() => {
+        dialog.style.display = 'none';
+        if (callback) {
+            callback(); // Execute callback after the dialog is removed
+        }
+    }, 3000); // Remove the dialog after 3 seconds
+}
+
+
+
 
 function showPrizePopup() {
     popup.style.display = 'block';
