@@ -5,20 +5,7 @@
 <title>Chill Fishing</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div id="prize-info">
-        <div class="prize-block">
-            <span>1st Prize: Level <span id="display-first-prize"></span>+</span>
-        </div>
-        <div class="prize-block">
-            <span>2nd Prize: Level <span id="display-second-prize"></span>+</span>
-        </div>
-        <div class="prize-block">
-            <span>3rd Prize: Level <span id="display-third-prize"></span>+</span>
-        </div>
-    </div>
-    
-        
+<body>  
     <div id="game-container">
         <div id="cat"></div>
         <div class="grid" id="grid0"></div>
@@ -34,7 +21,7 @@
         <div class="grid" id="grid10"></div>
         <div class="grid" id="grid11"></div>
     </div>
-    <div id="level-display">Level: <span id="level">1</span></div>
+    <div id="next-score">Next Score: <span id="next-score-value">100</span></div>
     <div id="catch-dialog" style="display: none;">
         <div id="dialog-content">
             <img id="catch-result-image" src="" alt="Catch Result" style="width: 400px; height: auto;">
@@ -42,7 +29,7 @@
         </div>
     </div>
     
-    <div id="prize-popup" style="display: none;">
+    <div id="scan-popup" style="display: none;">
         <div id="popup-content">
             <h2>挑戰完成！</h2>
             <h1>請準備手機掃描挑戰結果QR Code</h1>
@@ -52,9 +39,6 @@
         <div id="config-content">
             <h2>Game Configuration</h2>
             Acceleration Factor: <input type="number" id="accel-factor" min="0.1" max="2" step="0.1" value="0.9"><br>
-            Third Prize Threshold: <input type="number" id="third-prize-threshold" min="1" value="5"><br>
-            Second Prize Threshold: <input type="number" id="second-prize-threshold" min="1" value="10"><br>
-            First Prize Threshold: <input type="number" id="first-prize-threshold" min="1" value="12"><br>
             <button onclick="updateConfig()">Update</button>
         </div>
     </div>
