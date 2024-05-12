@@ -1,22 +1,19 @@
 const gridElements = document.querySelectorAll('.grid');
-const levelSpan = document.getElementById('level');
-const popup = document.getElementById('prize-popup');
+const scanPopup = document.getElementById('scan-popup');
 const countdownElement = document.getElementById('countdown');
 let gridContents = Array(12).fill(true);  // All grids start with fish
-let currentLevel = 1;
 gridContents[0] = false;  // Initial configuration without a fish in grid 0
+
+let currentScore = 0;
+let fishCaught = 0;
+
+const scoreValues = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000];
 
 let gameInterval;  // Declare outside to manage its state globally
 let animateCatInterval;  // Declare outside to manage its state globally
 let catCatchTimeout;  // Declare outside to manage its state globally
 let accelerationFactor = 0.9; // Each level will speed up the game by 10%
-let prizeConfig = {
-    thirdPrizeThreshold: 5,
-    secondPrizeThreshold: 10,
-    firstPrizeThreshold: 11,
-};
-
-
+const nextScoreSpan = document.getElementById('next-score-value');
 function updateGrids() {
     gridContents.unshift(gridContents.pop()); // Rotate array right
     updateGridVisuals();
@@ -50,7 +47,6 @@ function animateCat() {
 function animateCatCatch(success) {
     clearInterval(animateCatInterval); // Clear normal animation interval
     const cat = document.getElementById('cat');
-
     if (success) {
         cat.style.backgroundPosition = '-0px -305px'; // First frame of second row - catching
         setTimeout(() => {
@@ -72,6 +68,39 @@ function animateCatCatch(success) {
 
 
 
+function updateScore() {
+    const scoreValues = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000];  // Score mapping table
+    if (fishCaught < scoreValues.length) {
+        currentScore += scoreValues[fishCaught];
+        if (fishCaught < scoreValues.length - 1) {
+            nextScoreSpan.textContent = scoreValues[fishCaught + 1];
+        } else {
+            nextScoreSpan.textContent = "Max Score Reached";
+        }
+        fishCaught++;
+    }
+}
+
+
+function throttle(func, limit) {
+    let lastRan;
+    return function() {
+        const context = this;
+        const args = arguments;
+        if (!lastRan || (Date.now() - lastRan) >= limit) {
+            func.apply(context, args);
+            lastRan = Date.now();
+        }
+    }
+}
+
+let throttledCheckGridNine = throttle(function() {
+    checkGridNine();
+}, 3000);
+
+
+// Function to check grid status
+
 function checkGridNine() {
     clearInterval(gameInterval); // Stop fish movement
     clearInterval(animateCatInterval); // Stop cat normal animation
@@ -86,32 +115,39 @@ function checkGridNine() {
         animateCat(); // Restart normal cat animation
     }, 500);
 
+    let scoreGained = gridContents[9] ? scoreValues[fishCaught] : 0;
+    showCatchDialog(gridContents[9], scoreGained);
+
     if (gridContents[9]) {
         gridContents[9] = false;
-        currentLevel++;
-        levelSpan.textContent = currentLevel;
+        updateScore();
         updateGridVisuals();
         animateCatCatch(true); // Use catching and eating animation for success
         if (!gridContents.includes(true)) {
             setTimeout(() => {
-                triggerScanner();
+                triggerScanner(currentScore); // Pass the current score to the scanner
                 location.reload();
+            }, 6000);
+
+            setTimeout(() => {
+                showScanPopup();
             }, 3000);
-            showPrizePopup();
         }
     } else {
         animateCatCatch(false); // Use failing animation for failure
         setTimeout(() => {
-            triggerScanner();
+            triggerScanner(currentScore); // Pass the current score to the scanner even if it was a fail
             location.reload();
+        }, 6000);
+        setTimeout(() => {
+            showScanPopup();
         }, 3000);
-        showPrizePopup();
     }
 }
 
 
 function updateGameSpeed() {
-    const newInterval = 500 * Math.pow(accelerationFactor, currentLevel - 1); // Calculate new speed based on level
+    const newInterval = 500 * Math.pow(accelerationFactor, fishCaught - 1); // Calculate new speed based on level
     clearInterval(gameInterval); // Clear the existing interval
     gameInterval = setInterval(updateGrids, newInterval); // Set a new interval with updated speed
 }
@@ -125,15 +161,13 @@ function startGame() {
 
 /* config */
 function showConfigPopup() {
+    console.log('showConfigPopup')
     document.getElementById('config-popup').style.display = 'block';
 }
 
 function updateConfig() {
     const newConfig = {
         accelerationFactor: parseFloat(document.getElementById('accel-factor').value),
-        thirdPrizeThreshold: parseInt(document.getElementById('third-prize-threshold').value, 10),
-        secondPrizeThreshold: parseInt(document.getElementById('second-prize-threshold').value, 10),
-        firstPrizeThreshold: parseInt(document.getElementById('first-prize-threshold').value, 10)
     };
 
     if (newConfig.accelerationFactor >= 0.1 && newConfig.accelerationFactor <= 2) {
@@ -150,12 +184,6 @@ function loadConfig() {
     if (configString) {
         const config = JSON.parse(configString);
         document.getElementById('accel-factor').value = config.accelerationFactor;
-        document.getElementById('third-prize-threshold').value = config.thirdPrizeThreshold;
-        document.getElementById('second-prize-threshold').value = config.secondPrizeThreshold;
-        document.getElementById('first-prize-threshold').value = config.firstPrizeThreshold;
-
-        // Update global config variable
-        prizeConfig = config;
 
         // Update game variables
         accelerationFactor = config.accelerationFactor;
@@ -163,13 +191,10 @@ function loadConfig() {
         console.log("Configuration loaded:", config);
     }
 
-    document.getElementById('display-first-prize').textContent = prizeConfig.firstPrizeThreshold;
-    document.getElementById('display-second-prize').textContent = prizeConfig.secondPrizeThreshold;
-    document.getElementById('display-third-prize').textContent = prizeConfig.thirdPrizeThreshold;
 }
 
 // Add event listener to level display to show config popup
-document.getElementById('level-display').addEventListener('click', function(event) {
+document.getElementById('next-score').addEventListener('click', function(event) {
     event.stopPropagation(); // Prevent propagation to stop triggering checkGridNine
     showConfigPopup();
 });
@@ -180,42 +205,57 @@ document.getElementById('config-popup').addEventListener('click', function(event
 });
 
 
-function triggerScanner() {
-    console.log("Scanner triggered");
-    const finalLevel = currentLevel - 1; // Assuming currentLevel increments before game over
-    let prizeMessage = "Got No Prize";
-    let scannerArgument = "noPrize";  // Default argument for the scanner
-
-    if (finalLevel >= prizeConfig.firstPrizeThreshold) {
-        prizeMessage = "Got First Prize!";
-        scannerArgument = "firstPrize";
-    } else if (finalLevel >= prizeConfig.secondPrizeThreshold) {
-        prizeMessage = "Got Second Prize!";
-        scannerArgument = "secondPrize";
-    } else if (finalLevel >= prizeConfig.thirdPrizeThreshold) {
-        prizeMessage = "Got Third Prize!";
-        scannerArgument = "thirdPrize";
-    }
-
-    alert(`Game Over! ${prizeMessage}`);
+function triggerScanner(score) {
+    const scannerArgument = score.toString();  // Convert score to a string for the scanner argument
+    console.log("Scanner triggered with score:", scannerArgument);
+    alert(`Game Over! Score: ${scannerArgument}`);
 
     if (window.Android) {
         window.Android.startScanner(scannerArgument); // Pass the specific prize argument to Android
     } else {
-        console.log(prizeMessage); // Log prize message if not running on Android
+        console.log("Scanner feature not available on this platform.");
     }
 }
+function showCatchDialog(success, score) {
+    const dialog = document.getElementById('catch-dialog');
+    const image = document.getElementById('catch-result-image');
+    const message = document.getElementById('catch-dialog-message');
 
-function showPrizePopup() {
-    popup.style.display = 'block';
+    // Set image and message based on success
+    if (success) {
+        image.src = 'happy.png'; // Ensure you have 'happy.png' in your assets
+        message.textContent = `Catch Success! Score: ${score}`;
+    } else {
+        image.src = 'sad.png'; // Ensure you have 'sad.png' in your assets
+        message.textContent = 'Catch Fail';
+    }
+
+    // Display the dialog
+    setTimeout(() => {
+        dialog.style.display = 'block';
+    }, 600); // Show the dialog after 0.6 seconds
+
+    // Hide the dialog after 3 seconds
+    setTimeout(() => {
+        dialog.style.display = 'none';
+    }, 3000); // Remove the dialog after 3 seconds
 }
 
-document.addEventListener('click', checkGridNine);
+
+
+function showScanPopup() {
+    console.log('show scan popup')
+    scanPopup.style.display = 'block';
+}
+
+
+document.addEventListener('click', throttledCheckGridNine);
 document.addEventListener('keydown', function(event) {
-    if (event.keyCode === 13) {  // 13 is the keycode for the Enter key
-        checkGridNine();
+    if (event.keyCode === 13) {  // Enter key
+        throttledCheckGridNine();
     }
 });
+
 window.onload = function() {
     loadConfig();
     updateGridVisuals();
