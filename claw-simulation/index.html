@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claw Machine Game</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: white;
+        overflow: hidden; /* Prevents scrollbars */
+      }
+      canvas {
+        max-width: 100%;
+        max-height: 100vh;
+        box-sizing: border-box;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.16.0/build/matter.min.js"></script>
+    <script src="game.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+          const widthToHeightRatio = 4 / 3;
+          let newWidth = window.innerWidth;
+          let newHeight = window.innerHeight;
+          const newRatio = newWidth / newHeight;
+
+          if (newRatio > widthToHeightRatio) {
+            newWidth = newHeight * widthToHeightRatio;
+          } else {
+            newHeight = newWidth / widthToHeightRatio;
+          }
+
+          canvas.style.width = newWidth + "px";
+          canvas.style.height = newHeight + "px";
+        }
+
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Initialize your game setup here
+      });
+    </script>
+  </body>
+</html>
