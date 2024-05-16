@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>結果</title>
-<style>
-    body {
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>結果</title>
+    <style>
+      body {
         font-family: Arial, sans-serif;
         display: flex;
         justify-content: center;
@@ -13,64 +14,72 @@
         margin: 0;
         background-color: #f0f0f0;
         color: #333;
-    }
-    #result-container {
+      }
+      #result-container {
         background: white;
         padding: 20px;
         border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         text-align: center;
-        width: 80%;
-        max-width: 600px;
-    }
-    img {
-        max-width: 100%;
-        height: auto;
+        width: 90%;
+        max-width: 400px;
+      }
+      .whatsapp-button {
         margin-top: 20px;
-    }
-</style>
-</head>
-<body>
-<div id="result-container">
-    <div id="message"></div>
-    <img id="result-image" src="" alt="Result Image">
-</div>
-
-<script>
-    function getQueryStringValue(key) {
-        return new URLSearchParams(window.location.search).get(key);
-    }
-
-    function displayResult() {
-        const scannerArgument = getQueryStringValue('scannerArgument');
-        let message = "No Prize";
-        let imageName = "result_no_prize.jpg"; // default image
-
-        switch(scannerArgument) {
-            case "firstPrize":
-                message = "恭喜！你得到了一等結果！";
-                imageName = "result_first_prize.jpg";
-                break;
-            case "secondPrize":
-                message = "哇！你獲得了二等結果!";
-                imageName = "result_second_prize.jpg";
-                break;
-            case "thirdPrize":
-                message = "好！你獲得了三等結果！";
-                imageName = "result_third_prize.jpg";
-                break;
-            default:
-                message = "再次嘗試！";
-                imageName = "result_no_prize.jpg";
-                break;
+        padding: 10px;
+        background-color: #25d366;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+        display: inline-block;
+        width: 90%;
+      }
+      .whatsapp-button:hover {
+        background-color: #1ebe57;
+      }
+      @media (min-width: 600px) {
+        #result-container {
+          width: 80%;
         }
-        document.getElementById('message').innerText = message;
-        document.getElementById('result-image').src = imageName;
-        document.getElementById('result-image').alt = message; // Update alt text for accessibility
-    }
+      }
+      @media (min-width: 768px) {
+        .whatsapp-button {
+          font-size: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="result-container">
+      <div id="message"></div>
+      <a id="whatsapp-button" class="whatsapp-button" href="#">領取積分</a>
+    </div>
 
-    // Call displayResult on page load
-    window.onload = displayResult;
-</script>
-</body>
+    <script>
+      function getQueryStringValue(key) {
+        return new URLSearchParams(window.location.search).get(key);
+      }
+
+      function displayResult() {
+        const score = parseInt(getQueryStringValue("s"));
+        let message = `恭喜你！得到 ${score} 積分`;
+
+        document.getElementById("message").innerText = message;
+
+        // Update the WhatsApp button link
+        const whatsappButton = document.getElementById("whatsapp-button");
+        const whatsappNumber = "+85246359206";
+        const prefilledMessage = `請確認我的分數 ${score}`;
+        whatsappButton.href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+          prefilledMessage
+        )}`;
+      }
+
+      // Call displayResult on page load
+      window.onload = displayResult;
+    </script>
+  </body>
 </html>

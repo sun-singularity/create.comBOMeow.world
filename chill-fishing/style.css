@@ -12,7 +12,7 @@ body {
     text-align: center;
     position: absolute;
     bottom: 90px;
-    left: 870px;
+    left: 790px;
     color: white;
     font-size: 60px;
 }
@@ -127,17 +127,22 @@ body {
     top: 50%;
     transform: translateY(-50%);
     background: navy;
-    padding: 20px;
+    padding: 40px; /* Increased padding for better spacing */
     border-radius: 10px;
     text-align: center;
-    width: auto;
+    width: 80%; /* Increased width to accommodate larger text */
+    max-width: 800px; /* Set a max width for better readability on larger screens */
     display: inline-block;
 }
-#config-content input, #config-content button {
+
+#config-content input,
+#config-content textarea,
+#config-content button {
     font-size: 24px; /* Larger font size for better visibility */
     padding: 10px 20px; /* Padding for better touch interaction */
-    margin: 5px; /* Space between the input and the button */
-    width: 50%; /* Adjust the width as needed */
+    margin: 10px 0; /* Increased margin for better spacing */
+    width: 100%; /* Full width for inputs and textarea */
+    box-sizing: border-box; /* Ensure padding and border are included in the width */
 }
 
 #config-content button {
@@ -148,11 +153,19 @@ body {
     border-radius: 5px; /* Rounded corners for the button */
 }
 
-#config-content input {
+#config-content input,
+#config-content textarea {
     text-align: center; /* Center the text inside the input box */
     border-radius: 5px; /* Rounded corners for the input */
     border: 2px solid #ccc; /* Slight border for the input */
+    font-family: inherit; /* Ensure consistent font family */
 }
+
+#config-content textarea {
+    height: 100px; /* Set a fixed height for the textarea */
+    resize: none; /* Disable resize to keep layout consistent */
+}
+
 
 #catch-dialog {
     position: fixed;
