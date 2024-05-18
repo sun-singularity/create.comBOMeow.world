@@ -1,4 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Check if the page was already reloaded
+  if (localStorage.getItem("reloaded") === "true") {
+    localStorage.removeItem("reloaded"); // Clear the reload flag
+  }
+
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
   const engine = Matter.Engine.create();
@@ -19,10 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const containers = [
     createContainerPart(250, 0, 200, 20), // top border
-    createContainerPart(150, 275, 20, 550), // left border
-    createContainerPart(350, 275, 20, 550), // right border
-    createVShapePart(200, 500, 80, 20, Math.PI / 4), // left side of V
-    createVShapePart(300, 500, 80, 20, -Math.PI / 4) // right side of V
+    createContainerPart(150, 300, 20, 400), // left border
+    createContainerPart(350, 330, 20, 455), // right border
+    createContainerPart(250, 550, 250, 20), // bottom border
+    // createVShapePart(250, 550, 250, 20, Math.PI / 8), // left side of V
+    // createVShapePart(300, 500, 80, 20, -Math.PI / 8) // right side of V
   ];
   Matter.World.add(world, containers);
 
@@ -40,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
       Matter.Bodies.circle(xPosition, yPosition, 20, {
         restitution: 0.1, // Low restitution for inelastic collisions
         friction: 0.2, // Adjust friction as needed
-        density: 0.01,
+        density: 0.001,
         label: "circle",
         render: {
           sprite: {
@@ -151,7 +157,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const ballCount = countBalls(engine);
     if (ballCount === 0) {
       setTimeout(function () {
-        window.location.reload();
+        if (!localStorage.getItem("reloaded")) {
+          localStorage.setItem("reloaded", "true");
+          window.location.reload();
+        }
       }, 3000);
     }
     ctx.font = "20px Arial";
