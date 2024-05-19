@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Check if the page was already reloaded
   if (localStorage.getItem("reloaded") === "true") {
-    localStorage.removeItem("reloaded"); // Clear the reload flag
+    localStorage.removeItem("reloaded");
   }
 
   const canvas = document.getElementById("gameCanvas");
@@ -10,98 +9,133 @@ document.addEventListener("DOMContentLoaded", () => {
   const world = engine.world;
   engine.world.gravity.y = 1;
 
-  let clawMovingDown = false;
-  let pivotX = 250;
-  let pivotY = 50;
-  let movingRight = true;
-  let maxShift = 50;
-  let lastActivationTime = 0;
-  let activationCount = 0;
-  const debouncePeriod = 5000;
+  let gameFinished = false;
 
   const containerImage = new Image();
-  containerImage.src = 'container.png'; // Path to your container image
+  containerImage.src = 'container.png';
 
+  const bottomContainer = createContainerPart(250, 550, 250, 20); // Moved out to access in update function
   const containers = [
-    createContainerPart(250, 0, 200, 20), // top border
-    createContainerPart(150, 300, 20, 400), // left border
-    createContainerPart(350, 330, 20, 455), // right border
-    createContainerPart(250, 550, 250, 20), // bottom border
-    // createVShapePart(250, 550, 250, 20, Math.PI / 8), // left side of V
-    // createVShapePart(300, 500, 80, 20, -Math.PI / 8) // right side of V
+    createContainerPart(250, 80, 200, 20),
+    createContainerPart(150, 400, 20, 250),
+    createContainerPart(350, 400, 20, 250),
+    bottomContainer
   ];
   Matter.World.add(world, containers);
-
+  
+  const cubeImage = new Image();
+  cubeImage.src = 'cube.png';
+  
   const ballImage = new Image();
-  ballImage.src = 'ball.png'; // Path to your ball image
+  ballImage.src = 'ball.png';
+  
+  let fallenBalls = 0;  // Count how many balls have fallen
 
-  const clawImage = new Image();
-  clawImage.src = 'claw.png'; // Path to your claw image
+  let spawnX = 250; // Center of the canvas
+  let spawnY = 120;  // Starting height
+  let cubeSize = 40; // Size of the cube
 
-  for (let i = 0; i < 50; i++) {
-    let xPosition = 200 + Math.random() * 100;
-    let yPosition = 200 + Math.random() * 50;
-    Matter.World.add(
-      world,
-      Matter.Bodies.circle(xPosition, yPosition, 20, {
-        restitution: 0.1, // Low restitution for inelastic collisions
-        friction: 0.2, // Adjust friction as needed
-        density: 0.001,
-        label: "circle",
-        render: {
-          sprite: {
-            texture: 'ball.png', // Path to the ball image
-            xScale: 0.5, // Adjust the scale if needed
-            yScale: 0.5,
-          },
-        },
-      })
-    );
-  }
+  spawnBall(150, 220, 40);
+  spawnBall(350, 220, 40);
 
-  let claw = createClawWithString(world, pivotX, pivotY, 80, 40);
+  let bottomContainerDirection = 1; // 1 for moving right, -1 for moving left
+  const maxShift = 100; // Max distance to move from the center
+  const shiftSpeed = 1; // Speed of the container movement
 
-  function updateClaw() {
-    if (clawMovingDown && pivotY < 500) {
-      pivotY += 2;
-      updateClawConstraint();
-    } else if (!clawMovingDown && pivotY > 50) {
-      pivotY -= 2;
-      updateClawConstraint();
+  let freezeTime = 0; // Variable to track the freeze time
+  const freezeDuration = 5000; // 5 seconds in milliseconds
+  let playerAttempts = 0; // Variable to track player attempts
+
+  setInterval(() => {
+    Matter.Engine.update(engine);
+    updateBottomContainer(); // Update the position of the bottom container
+    removeFallenBalls(canvas, engine, world);
+    draw();
+  }, 1000 / 60);
+
+  canvas.addEventListener("click", () => {
+    spawnCubes();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      spawnCubes();
     }
-  }
+  });
 
-  function updateClawConstraint() {
-    if (claw.string) {
-      Matter.World.remove(world, claw.string);
+  function updateBottomContainer() {
+    const currentX = bottomContainer.position.x;
+    if (currentX >= 250 + maxShift) {
+      bottomContainerDirection = -1;
+    } else if (currentX <= 250 - maxShift) {
+      bottomContainerDirection = 1;
     }
-    claw.string = Matter.Constraint.create({
-      pointA: { x: pivotX, y: 0 },
-      bodyB: claw.clawArm,
-      pointB: { x: 0, y: 0 },
-      stiffness: 0.05,
-      length: pivotY,
-    });
-    Matter.World.add(world, claw.string);
+
+    Matter.Body.setVelocity(bottomContainer, { x: shiftSpeed * bottomContainerDirection, y: 0 });
+    Matter.Body.setPosition(bottomContainer, { x: currentX + shiftSpeed * bottomContainerDirection, y: bottomContainer.position.y });
   }
 
-  function shiftPivot() {
-    if (!clawMovingDown) {
-      if (pivotX >= 250 + maxShift) {
-        movingRight = false;
-      } else if (pivotX <= 250 - maxShift) {
-        movingRight = true;
+  function spawnBall(x, y, size) {
+    let ball = Matter.Bodies.circle(x, y, size / 2, {
+      restitution: 1,
+      friction: 0.1,
+      density: 0.1,
+      label: "ball",
+      render: {
+        sprite: {
+          texture: 'ball.png',
+          xScale: size / 100,
+          yScale: size / 100
+        }
       }
+    });
+    Matter.World.add(world, ball);
+  }
 
-      pivotX += movingRight ? 1 : -1;
-      updateClawConstraint();
+  function spawnCubes() {
+    if (Date.now() - freezeTime < freezeDuration) {
+      return; // If still in cooldown period, do nothing
     }
+
+    freezeTime = Date.now(); // Reset the freeze time
+    playerAttempts++; // Increment the player attempts count
+
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => {
+        spawnCube();
+      }, i * 1000); // Delay each cube spawn by 0.2 seconds
+    }
+  }
+
+  function spawnCube() {
+    let cube = Matter.Bodies.rectangle(spawnX, spawnY, cubeSize, cubeSize, {
+      restitution: 0.01,
+      friction: 5,
+      density: 0.01,
+      label: "cube",
+      render: {
+        sprite: {
+          texture: 'cube.png',
+          xScale: 1,
+          yScale: 1,
+        },
+      },
+    });
+    Matter.World.add(world, cube);
+  }
+
+  function drawSpawnIndicator() {
+    ctx.fillStyle = "rgba(255, 165, 0, 0.5)"; // Orange color with opacity
+    ctx.fillRect(spawnX - cubeSize / 2, spawnY - cubeSize / 2, cubeSize, cubeSize);
   }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawSpawnIndicator();
+
     Matter.Composite.allBodies(engine.world).forEach((body) => {
       const vertices = body.vertices;
       ctx.beginPath();
@@ -112,169 +146,81 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.closePath();
       ctx.stroke();
 
-      // Draw the ball image with rotation
-      if (body.label === "circle") {
+      if (body.label === "cube") {
         ctx.save();
         ctx.translate(body.position.x, body.position.y);
         ctx.rotate(body.angle);
-        ctx.drawImage(ballImage, -20, -20, 40, 40); // Adjust the size accordingly
+        ctx.drawImage(cubeImage, -20, -20, 40, 40);
         ctx.restore();
-      }
-
-      // Draw the claw image with rotation
-      if (body.label === "clawPart") {
-        ctx.save();
-        ctx.translate(body.position.x, body.position.y);
-        ctx.rotate(body.angle);
-        ctx.drawImage(clawImage, -40, -20, 80, 40); // Adjust the size accordingly
-        ctx.restore();
-      }
-
-      // Draw the container image for borders
-      if (body.label === "container") {
+      } else if (body.label === "container") {
         ctx.save();
         ctx.translate(body.position.x, body.position.y);
         ctx.rotate(body.angle);
         const width = vertices[1].x - vertices[0].x;
         const height = vertices[2].y - vertices[1].y;
-        ctx.drawImage(containerImage, -width / 2, -height / 2, width, height); // Adjust the size accordingly
+        ctx.drawImage(containerImage, -width / 2, -height / 2, width, height);
+        ctx.restore();
+      } else if (body.label === "ball") {
+        ctx.save();
+        ctx.translate(body.position.x, body.position.y);
+        ctx.rotate(body.angle);
+        // Ensure the image size scales based on the body's circleRadius
+        let radius = body.circleRadius;
+        ctx.drawImage(ballImage, -radius, -radius, radius * 2, radius * 2);
         ctx.restore();
       }
     });
-    Matter.Composite.allConstraints(engine.world).forEach((constraint) => {
-      ctx.beginPath();
-      ctx.moveTo(constraint.pointA.x, constraint.pointA.y);
-      ctx.lineTo(
-        constraint.bodyB.position.x + constraint.pointB.x,
-        constraint.bodyB.position.y + constraint.pointB.y
-      );
-      ctx.stroke();
-    });
 
-    updateClaw();
-    shiftPivot();
-
-    const ballCount = countBalls(engine);
-    if (ballCount === 0) {
-      setTimeout(function () {
-        if (!localStorage.getItem("reloaded")) {
-          localStorage.setItem("reloaded", "true");
-          window.location.reload();
-        }
-      }, 3000);
-    }
     ctx.font = "20px Arial";
     ctx.fillStyle = "black";
     ctx.textAlign = "right";
-    ctx.fillText("Ball Out: " + (50 - ballCount), canvas.width - 10, 30);
-    ctx.fillText("Push Count: " + activationCount, canvas.width - 10, 55);
-  }
+    ctx.fillText("Attempts: " + playerAttempts, canvas.width - 10, 30); // Display player attempts
 
-  setInterval(() => {
-    Matter.Engine.update(engine);
-    removeFallenBalls(canvas, engine, world);
-    draw();
-  }, 1000 / 60);
-
-  canvas.addEventListener("click", () => {
-    triggerClaw();
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      triggerClaw();
-    }
-  });
-
-  function triggerClaw() {
-    if (!clawMovingDown && !isClawDebounced()) {
-      activationCount++;
-      clawMovingDown = true;
-      setTimeout(() => {
-        clawMovingDown = false;
-      }, 5000);
-      lastActivationTime = Date.now();
+    // Display freeze countdown
+    if (Date.now() - freezeTime < freezeDuration) {
+      const remainingTime = Math.ceil((freezeDuration - (Date.now() - freezeTime)) / 1000);
+      ctx.font = "30px Arial";
+      ctx.fillStyle = "red";
+      ctx.textAlign = "center";
+      ctx.fillText("Wait: " + remainingTime + "s", canvas.width / 2, canvas.height / 2);
     }
   }
 
-  function isClawDebounced() {
-    return Date.now() - lastActivationTime < debouncePeriod;
+  function countCubes(engine) {
+    return Matter.Composite.allBodies(engine.world).filter(
+      (body) => body.label === "cube"
+    ).length;
+  }
+
+  function removeFallenBalls(canvas, engine, world) {
+    const bodies = Matter.Composite.allBodies(engine.world);
+    for (let body of bodies) {
+      if (body.label === "cube" && body.position.y > canvas.height + 20) {
+        Matter.World.remove(world, body);
+      }
+      if (body.label === "ball" && body.position.y > canvas.height + 20) {
+        Matter.World.remove(world, body);
+        fallenBalls++;
+      }
+      if (fallenBalls === 2 && !gameFinished) {
+        gameFinished = true; // Set the flag to true to prevent future triggers
+        alert("Finish");
+        window.setTimeout(() => window.location.reload(), 1000);  // Reload the webpage after 1 second
+      }
+    }
+  }
+
+  function createContainerPart(x, y, width, height) {
+    return Matter.Bodies.rectangle(x, y, width, height, {
+      isStatic: true,
+      label: "container",
+      render: {
+        sprite: {
+          texture: 'container.png',
+          xScale: width / 100,
+          yScale: height / 20,
+        },
+      },
+    });
   }
 });
-
-function createClawWithString(world, x, y, width, height) {
-  const armOptions = {
-    label: "clawPart",
-    density: 0.02,
-    render: {
-      sprite: {
-        texture: 'claw.png', // Path to the claw image
-        xScale: width / 80, // Adjust the scale if needed
-        yScale: height / 40,
-      },
-    },
-  };
-
-  const clawArm = Matter.Bodies.rectangle(x, y, width, height, armOptions);
-
-  const string = Matter.Constraint.create({
-    pointA: { x: x, y: 0 },
-    bodyB: clawArm,
-    pointB: { x: 0, y: -height / 2 },
-    stiffness: 0.05,
-    length: y - height / 2,
-  });
-
-  Matter.World.add(world, [clawArm, string]);
-
-  return {
-    clawArm,
-    string,
-  };
-}
-
-function createContainerPart(x, y, width, height) {
-  return Matter.Bodies.rectangle(x, y, width, height, {
-    isStatic: true,
-    label: "container",
-    render: {
-      sprite: {
-        texture: 'container.png', // Path to the container image
-        xScale: width / 80, // Adjust the scale if needed
-        yScale: height / 20,
-      },
-    },
-  });
-}
-
-function createVShapePart(x, y, length, width, angle) {
-  return Matter.Bodies.rectangle(x, y, length, width, {
-    isStatic: true,
-    angle: angle,
-    restitution: 0.1, // Low restitution for inelastic collisions
-    friction: 0.5, // Adjust friction as needed
-    label: "container",
-    render: {
-      sprite: {
-        texture: 'container.png', // Path to the container image
-        xScale: length / 100, // Adjust the scale if needed
-        yScale: width / 20,
-      },
-    },
-  });
-}
-
-function countBalls(engine) {
-  return Matter.Composite.allBodies(engine.world).filter(
-    (body) => body.label === "circle"
-  ).length;
-}
-
-function removeFallenBalls(canvas, engine, world) {
-  const bodies = Matter.Composite.allBodies(engine.world);
-  for (let body of bodies) {
-    if (body.label === "circle" && body.position.y > canvas.height + 20) {
-      Matter.World.remove(world, body);
-    }
-  }
-}
