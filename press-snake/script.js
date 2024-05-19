@@ -13,12 +13,9 @@ let snake = [
 ];
 let direction = { x: gridSize, y: 0 };
 let apple = randomGridPosition();
-let burnArea = [];
+let burnInstances = [];
 let speed = 100;
-let burnVisualActive = false;
 let burnLogicActive = false;
-let burnVisualTimeout;
-let burnLogicTimeout;
 let attempts = 0;
 
 const burnImage = new Image();
@@ -43,21 +40,26 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw snake
-    snake.forEach(part => {
+    snake.forEach((part, index) => {
         ctx.fillStyle = "green";
         ctx.fillRect(part.x, part.y, gridSize, gridSize);
+
+        // Draw border for snake head
+        if (index === 0) {
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(part.x, part.y, gridSize, gridSize);
+        }
     });
 
     // Draw apple
     ctx.fillStyle = "red";
     ctx.fillRect(apple.x, apple.y, gridSize, gridSize);
 
-    // Draw burn visual area
-    if (burnVisualActive && burnArea.length > 0) {
-        const burnX = Math.max(0, Math.min(burnArea[0].x, canvas.width - gridSize * 3));
-        const burnY = Math.max(0, Math.min(burnArea[0].y, canvas.height - gridSize * 3));
-        ctx.drawImage(burnImage, burnX, burnY, gridSize * 3, gridSize * 3);
-    }
+    // Draw burn instances
+    burnInstances.forEach(burn => {
+        ctx.drawImage(burnImage, burn.x, burn.y, gridSize * 3, gridSize * 3);
+    });
 
     // Draw attempts counter
     const attemptsCounter = document.getElementById("attemptsCounter");
@@ -86,21 +88,25 @@ function update() {
     // Check for collision with burn area
     if (burnLogicActive) {
         let hit = false;
-        burnArea.forEach(part => {
-            if (part.x === head.x && part.y === head.y) {
-                hit = true;
+        burnInstances.forEach(burn => {
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (head.x === burn.x + i * gridSize && head.y === burn.y + j * gridSize) {
+                        hit = true;
+                    }
+                }
             }
         });
+
         if (hit) {
             if (snake.length > 1) {
                 snake.pop(); // Shorten snake by removing the tail
                 speed = Math.max(speed * 0.8, 20); // Increase speed by 20%, minimum speed is 20ms
+                showBurnIndicator();
             } else {
-                setTimeout(function(){
-                    alert("Game Over");
-                    resetGame();
-                    return;
-                },100)
+                alert("Game Over");
+                resetGame();
+                return;
             }
         }
         burnLogicActive = false; // Deactivate burn logic after one check
@@ -111,6 +117,9 @@ function update() {
 
     // Auto seek apple
     seekApple();
+
+    // Remove expired burn instances
+    burnInstances = burnInstances.filter(burn => Date.now() - burn.timestamp < 1000);
 }
 
 function seekApple() {
@@ -136,49 +145,49 @@ function resetGame() {
     ];
     direction = { x: gridSize, y: 0 };
     apple = randomGridPosition();
-    burnArea = [];
+    burnInstances = [];
     speed = 100;
-    burnVisualActive = false;
     burnLogicActive = false;
-    clearTimeout(burnVisualTimeout);
-    clearTimeout(burnLogicTimeout);
     attempts = 0;
 }
 
 function burnAppleArea() {
     const burnStartX = apple.x - gridSize;
     const burnStartY = apple.y - gridSize;
-    burnArea = [];
+    const burnInstance = {
+        x: burnStartX,
+        y: burnStartY,
+        timestamp: Date.now()
+    };
 
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            const burnX = burnStartX + (i * gridSize);
-            const burnY = burnStartY + (j * gridSize);
-            if (burnX >= 0 && burnX < canvas.width && burnY >= 0 && burnY < canvas.height) {
-                burnArea.push({ x: burnX, y: burnY });
-            }
-        }
-    }
+    burnInstances.push(burnInstance);
 
     // Increment attempts counter
     attempts++;
 
-    // Activate burn visual for 1 second
-    burnVisualActive = true;
-    draw();
-    burnVisualTimeout = setTimeout(() => {
-        burnVisualActive = false;
-    }, 1000);
-
     // Activate burn logic for one update cycle
     burnLogicActive = true;
+
+    // Remove the burn visual after 1 second
+    setTimeout(() => {
+        burnInstances = burnInstances.filter(b => b !== burnInstance);
+    }, 1000);
+}
+
+function showBurnIndicator() {
+    const burnIndicator = document.getElementById("burnIndicator");
+    burnIndicator.style.display = "block";
+    setTimeout(() => {
+        burnIndicator.style.display = "none";
+    }, 1000);
 }
 
 window.addEventListener("keydown", (e) => {
     if (e.key === "Enter") burnAppleArea();
 });
 
-window.addEventListener("click", () => {
+
+canvas.addEventListener("touchstart", () => {
     burnAppleArea();
 });
 
