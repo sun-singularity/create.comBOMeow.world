@@ -17,3 +17,12 @@ canvas {
     font-size: 24px;
     color: #333;
 }
+
+#burnIndicator {
+    margin-top: 20px;
+    font-size: 24px;
+    color: #ff0000;
+    display: none;
+    position:absolute;
+    bottom:0px;
+}
