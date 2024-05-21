@@ -12,31 +12,25 @@ document.addEventListener("DOMContentLoaded", () => {
   let gameFinished = false;
 
   const containerImage = new Image();
-  containerImage.src = 'container.png';
+  containerImage.src = "container.png";
 
-  const bottomContainer = createContainerPart(250, 550, 250, 20); // Moved out to access in update function
-  const containers = [
-    createContainerPart(250, 80, 200, 20),
-    createContainerPart(150, 400, 20, 250),
-    createContainerPart(350, 400, 20, 250),
-    bottomContainer
-  ];
+  const bottomContainer = createContainerPart(450, 350, 550, 20); // Moved out to access in update function
+  const containers = [bottomContainer];
   Matter.World.add(world, containers);
-  
-  const cubeImage = new Image();
-  cubeImage.src = 'cube.png';
-  
+
   const ballImage = new Image();
-  ballImage.src = 'ball.png';
-  
-  let fallenBalls = 0;  // Count how many balls have fallen
+  ballImage.src = "ball.png";
 
-  let spawnX = 250; // Center of the canvas
-  let spawnY = 120;  // Starting height
-  let cubeSize = 40; // Size of the cube
+  const cubeImage = new Image();
+  cubeImage.src = "cube.png";
 
-  spawnBall(150, 220, 40);
-  spawnBall(350, 220, 40);
+  let fallenCubes = 0; // Count how many cubes have fallen
+
+  let spawnX = 400; // Center of the canvas
+  let spawnY = 100; // Starting height
+  let cubeSize = 80; // Size of the ball
+
+  spawnCube();
 
   let bottomContainerDirection = 1; // 1 for moving right, -1 for moving left
   const maxShift = 100; // Max distance to move from the center
@@ -49,73 +43,47 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(() => {
     Matter.Engine.update(engine);
     updateBottomContainer(); // Update the position of the bottom container
-    removeFallenBalls(canvas, engine, world);
+    removeFallenCubes(canvas, engine, world);
     draw();
   }, 1000 / 60);
 
   canvas.addEventListener("click", () => {
-    spawnCubes();
+    spawnBalls();
   });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
-      spawnCubes();
+      spawnBalls();
     }
   });
 
   function updateBottomContainer() {
     const currentX = bottomContainer.position.x;
-    if (currentX >= 250 + maxShift) {
+    if (currentX >= 400 + maxShift) {
       bottomContainerDirection = -1;
-    } else if (currentX <= 250 - maxShift) {
+    } else if (currentX <= 400 - maxShift) {
       bottomContainerDirection = 1;
     }
 
-    Matter.Body.setVelocity(bottomContainer, { x: shiftSpeed * bottomContainerDirection, y: 0 });
-    Matter.Body.setPosition(bottomContainer, { x: currentX + shiftSpeed * bottomContainerDirection, y: bottomContainer.position.y });
-  }
-
-  function spawnBall(x, y, size) {
-    let ball = Matter.Bodies.circle(x, y, size / 2, {
-      restitution: 1,
-      friction: 0.1,
-      density: 0.1,
-      label: "ball",
-      render: {
-        sprite: {
-          texture: 'ball.png',
-          xScale: size / 100,
-          yScale: size / 100
-        }
-      }
+    Matter.Body.setVelocity(bottomContainer, {
+      x: shiftSpeed * bottomContainerDirection,
+      y: 0,
     });
-    Matter.World.add(world, ball);
-  }
-
-  function spawnCubes() {
-    if (Date.now() - freezeTime < freezeDuration) {
-      return; // If still in cooldown period, do nothing
-    }
-
-    freezeTime = Date.now(); // Reset the freeze time
-    playerAttempts++; // Increment the player attempts count
-
-    for (let i = 0; i < 4; i++) {
-      setTimeout(() => {
-        spawnCube();
-      }, i * 1000); // Delay each cube spawn by 0.2 seconds
-    }
+    Matter.Body.setPosition(bottomContainer, {
+      x: currentX + shiftSpeed * bottomContainerDirection,
+      y: bottomContainer.position.y,
+    });
   }
 
   function spawnCube() {
     let cube = Matter.Bodies.rectangle(spawnX, spawnY, cubeSize, cubeSize, {
-      restitution: 0.01,
-      friction: 5,
+      restitution: 0.1,
+      friction: 100,
       density: 0.01,
       label: "cube",
       render: {
         sprite: {
-          texture: 'cube.png',
+          texture: "cube.png",
           xScale: 1,
           yScale: 1,
         },
@@ -124,9 +92,46 @@ document.addEventListener("DOMContentLoaded", () => {
     Matter.World.add(world, cube);
   }
 
+  function spawnBalls() {
+    if (Date.now() - freezeTime < freezeDuration) {
+      return; // If still in cooldown period, do nothing
+    }
+
+    freezeTime = Date.now(); // Reset the freeze time
+    playerAttempts++; // Increment the player attempts count
+
+    for (let i = 0; i < 1; i++) {
+      setTimeout(() => {
+        spawnBall(spawnX, spawnY, 40);
+      }, i * 1000); // Delay each ball spawn by 0.2 seconds
+    }
+  }
+
+  function spawnBall(x, y, size) {
+    let ball = Matter.Bodies.circle(x, y, size / 2, {
+      restitution: 1,
+      friction: 0.05,
+      density: 0.01,
+      label: "ball",
+      render: {
+        sprite: {
+          texture: "ball.png",
+          xScale: size / 100,
+          yScale: size / 100,
+        },
+      },
+    });
+    Matter.World.add(world, ball);
+  }
+
   function drawSpawnIndicator() {
     ctx.fillStyle = "rgba(255, 165, 0, 0.5)"; // Orange color with opacity
-    ctx.fillRect(spawnX - cubeSize / 2, spawnY - cubeSize / 2, cubeSize, cubeSize);
+    ctx.fillRect(
+      spawnX - cubeSize / 2,
+      spawnY - cubeSize / 2,
+      cubeSize,
+      cubeSize
+    );
   }
 
   function draw() {
@@ -146,11 +151,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.closePath();
       ctx.stroke();
 
-      if (body.label === "cube") {
+      if (body.label === "ball") {
         ctx.save();
         ctx.translate(body.position.x, body.position.y);
         ctx.rotate(body.angle);
-        ctx.drawImage(cubeImage, -20, -20, 40, 40);
+        ctx.drawImage(ballImage, -20, -20, 40, 40);
         ctx.restore();
       } else if (body.label === "container") {
         ctx.save();
@@ -160,13 +165,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const height = vertices[2].y - vertices[1].y;
         ctx.drawImage(containerImage, -width / 2, -height / 2, width, height);
         ctx.restore();
-      } else if (body.label === "ball") {
+      } else if (body.label === "cube") {
         ctx.save();
         ctx.translate(body.position.x, body.position.y);
         ctx.rotate(body.angle);
-        // Ensure the image size scales based on the body's circleRadius
-        let radius = body.circleRadius;
-        ctx.drawImage(ballImage, -radius, -radius, radius * 2, radius * 2);
+        // Use width and height of the rectangle for drawing
+        const width = vertices[1].x - vertices[0].x;
+        const height = vertices[2].y - vertices[1].y;
+        ctx.drawImage(cubeImage, -width / 2, -height / 2, width, height);
         ctx.restore();
       }
     });
@@ -178,34 +184,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Display freeze countdown
     if (Date.now() - freezeTime < freezeDuration) {
-      const remainingTime = Math.ceil((freezeDuration - (Date.now() - freezeTime)) / 1000);
+      const remainingTime = Math.ceil(
+        (freezeDuration - (Date.now() - freezeTime)) / 1000
+      );
       ctx.font = "30px Arial";
       ctx.fillStyle = "red";
       ctx.textAlign = "center";
-      ctx.fillText("Wait: " + remainingTime + "s", canvas.width / 2, canvas.height / 2);
+      ctx.fillText(
+        "Wait: " + remainingTime + "s",
+        canvas.width / 2,
+        canvas.height / 2
+      );
     }
   }
 
-  function countCubes(engine) {
+  function countBalls(engine) {
     return Matter.Composite.allBodies(engine.world).filter(
-      (body) => body.label === "cube"
+      (body) => body.label === "ball"
     ).length;
   }
 
-  function removeFallenBalls(canvas, engine, world) {
+  function removeFallenCubes(canvas, engine, world) {
     const bodies = Matter.Composite.allBodies(engine.world);
     for (let body of bodies) {
-      if (body.label === "cube" && body.position.y > canvas.height + 20) {
-        Matter.World.remove(world, body);
-      }
       if (body.label === "ball" && body.position.y > canvas.height + 20) {
         Matter.World.remove(world, body);
-        fallenBalls++;
       }
-      if (fallenBalls === 2 && !gameFinished) {
+      if (body.label === "cube" && body.position.y > canvas.height + 20) {
+        Matter.World.remove(world, body);
+        fallenCubes++;
+      }
+      if (fallenCubes === 1 && !gameFinished) {
         gameFinished = true; // Set the flag to true to prevent future triggers
         alert("Finish");
-        window.setTimeout(() => window.location.reload(), 1000);  // Reload the webpage after 1 second
+        window.setTimeout(() => window.location.reload(), 1000); // Reload the webpage after 1 second
       }
     }
   }
@@ -216,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
       label: "container",
       render: {
         sprite: {
-          texture: 'container.png',
+          texture: "container.png",
           xScale: width / 100,
           yScale: height / 20,
         },
