@@ -3,18 +3,43 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem("reloaded");
   }
 
+  const CONFIG = {
+    canvasWidth: 800,
+    canvasHeight: 600,
+    gravity: 1,
+    spawnX: 400,
+    spawnY: 100,
+    cubeSize: 80,
+    maxShift: 100,
+    shiftSpeed: 1,
+    freezeDuration: 5000,
+    bottomContainer: {
+      x: 450,
+      y: 350,
+      width: 550,
+      height: 20,
+      friction: 0.1,
+    },
+  };
+
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
   const engine = Matter.Engine.create();
   const world = engine.world;
-  engine.world.gravity.y = 1;
+  engine.world.gravity.y = CONFIG.gravity;
 
   let gameFinished = false;
 
   const containerImage = new Image();
   containerImage.src = "container.png";
 
-  const bottomContainer = createContainerPart(450, 350, 550, 20); // Moved out to access in update function
+  const bottomContainer = createContainerPart(
+    CONFIG.bottomContainer.x,
+    CONFIG.bottomContainer.y,
+    CONFIG.bottomContainer.width,
+    CONFIG.bottomContainer.height,
+    CONFIG.bottomContainer.friction
+  );
   const containers = [bottomContainer];
   Matter.World.add(world, containers);
 
@@ -26,18 +51,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let fallenCubes = 0; // Count how many cubes have fallen
 
-  let spawnX = 400; // Center of the canvas
-  let spawnY = 100; // Starting height
-  let cubeSize = 80; // Size of the ball
-
   spawnCube();
 
   let bottomContainerDirection = 1; // 1 for moving right, -1 for moving left
-  const maxShift = 100; // Max distance to move from the center
-  const shiftSpeed = 1; // Speed of the container movement
-
   let freezeTime = 0; // Variable to track the freeze time
-  const freezeDuration = 5000; // 5 seconds in milliseconds
   let playerAttempts = 0; // Variable to track player attempts
 
   setInterval(() => {
@@ -59,41 +76,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateBottomContainer() {
     const currentX = bottomContainer.position.x;
-    if (currentX >= 400 + maxShift) {
+    if (currentX >= CONFIG.spawnX + CONFIG.maxShift) {
       bottomContainerDirection = -1;
-    } else if (currentX <= 400 - maxShift) {
+    } else if (currentX <= CONFIG.spawnX - CONFIG.maxShift) {
       bottomContainerDirection = 1;
     }
 
     Matter.Body.setVelocity(bottomContainer, {
-      x: shiftSpeed * bottomContainerDirection,
+      x: CONFIG.shiftSpeed * bottomContainerDirection,
       y: 0,
     });
     Matter.Body.setPosition(bottomContainer, {
-      x: currentX + shiftSpeed * bottomContainerDirection,
+      x: currentX + CONFIG.shiftSpeed * bottomContainerDirection,
       y: bottomContainer.position.y,
     });
   }
 
   function spawnCube() {
-    let cube = Matter.Bodies.rectangle(spawnX, spawnY, cubeSize, cubeSize, {
-      restitution: 0.1,
-      friction: 100,
-      density: 0.01,
-      label: "cube",
-      render: {
-        sprite: {
-          texture: "cube.png",
-          xScale: 1,
-          yScale: 1,
+    let cube = Matter.Bodies.rectangle(
+      CONFIG.spawnX,
+      CONFIG.spawnY,
+      CONFIG.cubeSize,
+      CONFIG.cubeSize,
+      {
+        restitution: 0.1,
+        friction: 100,
+        density: 0.01,
+        label: "cube",
+        render: {
+          sprite: {
+            texture: "cube.png",
+            xScale: 1,
+            yScale: 1,
+          },
         },
-      },
-    });
+      }
+    );
     Matter.World.add(world, cube);
   }
 
   function spawnBalls() {
-    if (Date.now() - freezeTime < freezeDuration) {
+    if (Date.now() - freezeTime < CONFIG.freezeDuration) {
       return; // If still in cooldown period, do nothing
     }
 
@@ -102,8 +125,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (let i = 0; i < 1; i++) {
       setTimeout(() => {
-        spawnBall(spawnX, spawnY, 40);
-      }, i * 1000); // Delay each ball spawn by 0.2 seconds
+        spawnBall(CONFIG.spawnX, CONFIG.spawnY, 40);
+      }, i * 1000); // Delay each ball spawn by 1 second
     }
   }
 
@@ -127,10 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function drawSpawnIndicator() {
     ctx.fillStyle = "rgba(255, 165, 0, 0.5)"; // Orange color with opacity
     ctx.fillRect(
-      spawnX - cubeSize / 2,
-      spawnY - cubeSize / 2,
-      cubeSize,
-      cubeSize
+      CONFIG.spawnX - CONFIG.cubeSize / 2,
+      CONFIG.spawnY - CONFIG.cubeSize / 2,
+      CONFIG.cubeSize,
+      CONFIG.cubeSize
     );
   }
 
@@ -183,9 +206,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fillText("Attempts: " + playerAttempts, canvas.width - 10, 30); // Display player attempts
 
     // Display freeze countdown
-    if (Date.now() - freezeTime < freezeDuration) {
+    if (Date.now() - freezeTime < CONFIG.freezeDuration) {
       const remainingTime = Math.ceil(
-        (freezeDuration - (Date.now() - freezeTime)) / 1000
+        (CONFIG.freezeDuration - (Date.now() - freezeTime)) / 1000
       );
       ctx.font = "30px Arial";
       ctx.fillStyle = "red";
@@ -196,12 +219,6 @@ document.addEventListener("DOMContentLoaded", () => {
         canvas.height / 2
       );
     }
-  }
-
-  function countBalls(engine) {
-    return Matter.Composite.allBodies(engine.world).filter(
-      (body) => body.label === "ball"
-    ).length;
   }
 
   function removeFallenCubes(canvas, engine, world) {
@@ -222,9 +239,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function createContainerPart(x, y, width, height) {
+  function createContainerPart(x, y, width, height, friction) {
     return Matter.Bodies.rectangle(x, y, width, height, {
       isStatic: true,
+      friction: friction,
       label: "container",
       render: {
         sprite: {
