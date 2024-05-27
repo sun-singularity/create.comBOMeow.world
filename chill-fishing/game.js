@@ -77,7 +77,7 @@ function updateScore() {
         if (fishCaught < scoreValues.length - 1) {
             nextScoreSpan.textContent = scoreValues[fishCaught + 1];
         } else {
-            nextScoreSpan.textContent = "Max Score Reached";
+            nextScoreSpan.textContent = "大癲！爆左分！";
         }
         fishCaught++;
     }
@@ -254,10 +254,10 @@ function showCatchDialog(success, score) {
     // Set image and message based on success
     if (success) {
         image.src = 'happy.png'; // Ensure you have 'happy.png' in your assets
-        message.textContent = `Catch Success! Score: ${score}`;
+        message.textContent = `耶！捉倒魚了！加左${score}分！`;
     } else {
         image.src = 'sad.png'; // Ensure you have 'sad.png' in your assets
-        message.textContent = 'Catch Fail';
+        message.textContent = '吖！食骨添！';
     }
 
     // Display the dialog
