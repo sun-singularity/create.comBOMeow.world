@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hexagon Drop Game</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: white;
+        overflow: hidden; /* Prevents scrollbars */
+      }
+      canvas {
+        max-width: 100%;
+        max-height: 100vh;
+        box-sizing: border-box;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.16.0/build/matter.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const CONFIG = {
+          canvasWidth: 800,
+          canvasHeight: 600,
+          gravity: 1,
+          spawnX: 200,
+          spawnY: 100,
+          hexSize: 40,
+          groundHeight: 20,
+          forceMagnitude: 10,
+          angleA: -Math.PI, // Angle A in radians
+          angleB: Math.PI / 18, // Angle B in radians
+        };
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const engine = Matter.Engine.create();
+        const world = engine.world;
+        engine.world.gravity.y = CONFIG.gravity;
+
+        let gameFinished = false;
+        let showIndicator = true;
+        let indicatorAngle = CONFIG.angleA;
+        let swingingRight = true;
+        let lastActionTime = 0;
+        let score = 0;
+        let scoreUpdated = false;
+
+        const ground = Matter.Bodies.rectangle(
+          CONFIG.canvasWidth / 2,
+          CONFIG.canvasHeight - CONFIG.groundHeight / 2,
+          CONFIG.canvasWidth,
+          CONFIG.groundHeight,
+          { isStatic: true, label: "ground" }
+        );
+        Matter.World.add(world, ground);
+
+        // Hardcoded blocks
+        const gap = 725;
+        const blocks = [
+          Matter.Bodies.rectangle(0, 400, gap, 20, {
+            isStatic: true,
+            label: "block1",
+          }),
+          Matter.Bodies.rectangle(800, 400, gap, 20, {
+            isStatic: true,
+            label: "block2",
+          }),
+          Matter.Bodies.rectangle(10, 200, 20, 1000, {
+            isStatic: true,
+            label: "block3",
+          }),
+          Matter.Bodies.rectangle(790, 200, 20, 1000, {
+            isStatic: true,
+            label: "block4",
+          }),
+        ];
+        blocks.forEach((block) => Matter.World.add(world, block));
+
+        const hexagon = Matter.Bodies.polygon(
+          CONFIG.spawnX,
+          CONFIG.spawnY,
+          6,
+          CONFIG.hexSize,
+          { restitution: 0.6, density: 0.05, label: "hexagon" }
+        );
+        Matter.World.add(world, hexagon);
+
+        setInterval(() => {
+          Matter.Engine.update(engine);
+          updateIndicator();
+          draw();
+          if (hexagon.position.y > CONFIG.canvasHeight - 60 && !gameFinished) {
+            calculateScore();
+          }
+        }, 1000 / 60);
+
+        setInterval(() => {
+          if (hexagon.position.y > CONFIG.canvasHeight - 60 && !gameFinished) {
+            calculateScore();
+          }
+        }, 200);
+
+        canvas.addEventListener("click", applyForceToHexagon);
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            applyForceToHexagon();
+          }
+        });
+
+        function updateIndicator() {
+          if (!showIndicator) return;
+
+          const swingSpeed = 0.02; // Adjust this value to change the swing speed
+
+          if (swingingRight) {
+            indicatorAngle += swingSpeed;
+            if (indicatorAngle >= CONFIG.angleB) {
+              indicatorAngle = CONFIG.angleB;
+              swingingRight = false;
+            }
+          } else {
+            indicatorAngle -= swingSpeed;
+            if (indicatorAngle <= CONFIG.angleA) {
+              indicatorAngle = CONFIG.angleA;
+              swingingRight = true;
+            }
+          }
+        }
+
+        function applyForceToHexagon() {
+          if (gameFinished) return;
+          if (Date.now() - lastActionTime < 2000) return; // 2 seconds cooldown
+
+          const force = {
+            x: CONFIG.forceMagnitude * Math.cos(indicatorAngle),
+            y: CONFIG.forceMagnitude * Math.sin(indicatorAngle),
+          };
+          Matter.Body.applyForce(hexagon, hexagon.position, force);
+          lastActionTime = Date.now();
+
+          showIndicator = false;
+          setTimeout(() => {
+            if (!gameFinished) {
+              showIndicator = true;
+            }
+          }, 2000);
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          drawHexagon(hexagon);
+          blocks.forEach((block) => drawBody(block, "gray"));
+          drawBody(ground, "green");
+
+          if (showIndicator) {
+            drawIndicator();
+          }
+
+          drawScoreMapping();
+
+          ctx.font = "20px Arial";
+          ctx.fillStyle = "black";
+          ctx.textAlign = "right";
+          ctx.fillText("Score: " + score, canvas.width - 30, 30);
+        }
+
+        function drawBody(body, color) {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          body.vertices.forEach((vertex, index) => {
+            if (index === 0) {
+              ctx.moveTo(vertex.x, vertex.y);
+            } else {
+              ctx.lineTo(vertex.x, vertex.y);
+            }
+          });
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        function drawHexagon(body) {
+          const colors = ["red", "orange", "yellow", "green", "blue", "purple"];
+          const vertices = body.vertices;
+
+          for (let i = 0; i < vertices.length; i++) {
+            ctx.fillStyle = colors[i];
+            ctx.beginPath();
+            ctx.moveTo(body.position.x, body.position.y);
+            ctx.lineTo(vertices[i].x, vertices[i].y);
+            ctx.lineTo(
+              vertices[(i + 1) % vertices.length].x,
+              vertices[(i + 1) % vertices.length].y
+            );
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+
+        function drawIndicator() {
+          const indicatorLength = 100;
+          const indicatorX =
+            hexagon.position.x + indicatorLength * Math.cos(indicatorAngle);
+          const indicatorY =
+            hexagon.position.y + indicatorLength * Math.sin(indicatorAngle);
+          ctx.strokeStyle = "red";
+          ctx.beginPath();
+          ctx.moveTo(hexagon.position.x, hexagon.position.y);
+          ctx.lineTo(indicatorX, indicatorY);
+          ctx.stroke();
+        }
+
+        function drawScoreMapping() {
+          const colors = ["red", "orange", "yellow", "green", "blue", "purple"];
+          const scores = [100, 100, 200, 200, 500, 1000];
+
+          ctx.font = "16px Arial";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          for (let i = 0; i < colors.length; i++) {
+            ctx.fillStyle = colors[i];
+            ctx.fillRect(10, 10 + i * 25, 20, 20);
+            ctx.fillStyle = "black";
+            ctx.fillText(" = " + scores[i] + " points", 40, 20 + i * 25);
+          }
+        }
+
+        function calculateScore() {
+          const angle = hexagon.angle % (Math.PI * 2);
+          const normalizedAngle = (angle + Math.PI * 2) % (Math.PI * 2); // Normalize angle to 0 - 2π
+          const segmentAngle = Math.PI / 3; // 60 degrees per segment
+
+          const edgeIndex = Math.floor(normalizedAngle / segmentAngle);
+          // red, purple, blue, green, yellow, orange
+          const edgeScores = [100, 1000, 500, 200, 200, 100];
+          score = edgeScores[edgeIndex];
+
+          if (!scoreUpdated && score > 0) {
+            scoreUpdated = true;
+            showIndicator = false;
+            canvas.removeEventListener("click", applyForceToHexagon);
+            document.removeEventListener("keydown", handleKeydown);
+            setTimeout(() => {
+              window.location.reload();
+            }, 5000); // Refresh the page after 5 seconds
+          }
+        }
+
+        function handleKeydown(event) {
+          if (event.key === "Enter") {
+            applyForceToHexagon();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
