@@ -3,13 +3,13 @@ document.addEventListener("DOMContentLoaded", () => {
         canvasWidth: 800,
         canvasHeight: 600,
         gravity: 1,
-        spawnX: 200,
+        spawnX: 100,
         spawnY: 100,
         hexSize: 70,
         groundHeight: 140,
-        forceMagnitude: 30,
-        angleA: -Math.PI,
-        angleB: Math.PI / 18,
+        forceMagnitude: 50,
+        angleA: - Math.PI / 2 - Math.PI / 2,  // 45 degrees - 22.5 degrees
+        angleB: - Math.PI / 2 + Math.PI / 2,  // 45 degrees + 22.5 degrees
         throttleTime: 2000
     };
 
@@ -38,19 +38,26 @@ document.addEventListener("DOMContentLoaded", () => {
         { isStatic: true, label: "ground" }
     );
     Matter.World.add(world, ground);
-    const gap = 650;
     const blocks = [
         Matter.Bodies.rectangle(0, 0, 1600, 20, {
             isStatic: true,
             label: "block0",
         }),
-        Matter.Bodies.rectangle(0, 350, gap, 20, {
+        Matter.Bodies.rectangle(0, 400, 620, 40, {
             isStatic: true,
-            label: "block1",
+            label: "hBlock1",
         }),
-        Matter.Bodies.rectangle(800, 350, gap, 20, {
+        Matter.Bodies.rectangle(280, 330, 40, 100, {
             isStatic: true,
-            label: "block2",
+            label: "vBlock1",
+        }),
+        Matter.Bodies.rectangle(420, 290, 320, 40, {
+            isStatic: true,
+            label: "hBlock2",
+        }),
+        Matter.Bodies.rectangle(570, 240, 40, 80, {
+            isStatic: true,
+            label: "vBlock2",
         }),
         Matter.Bodies.rectangle(30, 200, 20, 1000, {
             isStatic: true,
@@ -67,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
         CONFIG.spawnY,
         6,
         CONFIG.hexSize,
-        { restitution: 0.6, density: 0.05, label: "hexagon" }
+        { restitution: 0.6, density: 0.05, friction:1,  label: "hexagon" }
     );
     Matter.World.add(world, hexagon);
 
@@ -84,6 +91,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const cupImage = new Image();
     cupImage.src = 'cup2.png';
+
+    const indicatorImage = new Image();
+    indicatorImage.src = 'rainbowArrow.png';
+
+    indicatorImage.onload = () => {
+        console.log("Indicator image loaded successfully.");
+    };
+
+    indicatorImage.onerror = () => {
+        console.error("Failed to load indicator image.");
+    };
 
     function updateGame() {
         Matter.Engine.update(engine);
@@ -155,8 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
             drawIndicator();
         }
 
-        // drawScoreMapping();
         drawCup();
+        drawMovingIndicator();
     }
 
     function drawBody(body, color) {
@@ -211,73 +229,25 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.stroke();
     }
 
-    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, color) {
-        let rot = Math.PI / 2 * 3;
-        let x = cx;
-        let y = cy;
-        const step = Math.PI / spikes;
-    
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - outerRadius);
-        for (let i = 0; i < spikes; i++) {
-            x = cx + Math.cos(rot) * outerRadius;
-            y = cy - Math.sin(rot) * outerRadius;
-            ctx.lineTo(x, y);
-            rot += step;
-    
-            x = cx + Math.cos(rot) * innerRadius;
-            y = cy - Math.sin(rot) * innerRadius;
-            ctx.lineTo(x, y);
-            rot += step;
-        }
-        ctx.lineTo(cx, cy - outerRadius);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
+    function drawMovingIndicator() {
+        const amplitude = 20;
+        const frequency = 0.01;
+        const cupX = (CONFIG.canvasWidth / 2) +260;
+        const cupY = CONFIG.canvasHeight - CONFIG.groundHeight - 350; // Position just above the cup
+        const time = Date.now() * frequency;
+        const yOffset = Math.sin(time) * amplitude;
+
+        const indicatorWidth = 50;
+        const indicatorHeight = 50;
+
+        ctx.drawImage(indicatorImage, cupX - indicatorWidth / 2, cupY + yOffset - indicatorHeight / 2, indicatorWidth, indicatorHeight);
     }
-    
-    function drawScoreMapping() {
-        const colors = ["red", "yellow", "blue", "green", "purple", "black"];
-        const scores = [50, 100, 200, 500, 1000, 2000];
-        const padding = 0;
-        const totalWidth = canvas.width - padding * 2;
-        const cellWidth = totalWidth / colors.length;
-        const cellHeight = 40; // Increase cellHeight to provide space for star and text
-        const yPosition = 80;
-    
-        ctx.font = "30px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-    
-        for (let i = 0; i < colors.length; i++) {
-            const xPosition = padding + i * cellWidth + cellWidth / 2;
-    
-            if (highlightedScore === scores[i]) {
-                ctx.fillStyle = "lightgray"; // Highlight the background
-                ctx.fillRect(xPosition - cellWidth / 2, yPosition, cellWidth, cellHeight); // Adjust width to highlight full cell
-            }
-    
-            // Draw star shape
-            const starOuterRadius = 10;
-            const starInnerRadius = 5;
-            drawStar(ctx, xPosition, yPosition + starOuterRadius, 5, starOuterRadius, starInnerRadius, colors[i]);
-    
-            // Draw text
-            ctx.fillStyle = "white";
-            ctx.fillText(`${scores[i]} 分`, xPosition, yPosition + cellHeight / 2 + starOuterRadius);
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 2;
-            ctx.strokeText(`${scores[i]} 分`, xPosition, yPosition + cellHeight / 2 + starOuterRadius);
-        }
-    }
-    
-    
 
     function drawCup() {
         const cupWidth = 200;
         const cupHeight = 200 * 281 / 373;
         const groundY = CONFIG.canvasHeight - CONFIG.groundHeight;
-        const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2);
+        const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2) +260;
         const cupY = groundY - cupHeight + 80;
 
         ctx.drawImage(cupImage, cupX, cupY, cupWidth, cupHeight);
