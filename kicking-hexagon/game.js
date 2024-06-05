@@ -7,12 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
         spawnY: 100,
         hexSize: 70,
         groundHeight: 140,
-        forceMagnitude: 40,
+        forceMagnitude: 30,
         angleA: -Math.PI,
         angleB: Math.PI / 18,
-        throttleTime: 2000,
-        arrowBounceSpeed: 1,
-        arrowBounceHeight: 20
+        throttleTime: 2000
     };
 
     const canvas = document.getElementById("gameCanvas");
@@ -31,8 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let score = 0;
     let scoreUpdated = false;
     let highlightedScore = null;
-    let arrowY = 0;
-    let arrowDirection = 1;
 
     const ground = Matter.Bodies.rectangle(
         CONFIG.canvasWidth / 2,
@@ -42,21 +38,19 @@ document.addEventListener("DOMContentLoaded", () => {
         { isStatic: true, label: "ground" }
     );
     Matter.World.add(world, ground);
-    const gap = 255;
+    const gap = 650;
     const blocks = [
         Matter.Bodies.rectangle(0, 0, 1600, 20, {
             isStatic: true,
             label: "block0",
         }),
-        Matter.Bodies.rectangle(190, 360, gap, 80, {
+        Matter.Bodies.rectangle(0, 350, gap, 20, {
             isStatic: true,
             label: "block1",
-            angle: -Math.PI / 9
         }),
-        Matter.Bodies.rectangle(620, 350, gap, 80, {
+        Matter.Bodies.rectangle(800, 350, gap, 20, {
             isStatic: true,
             label: "block2",
-            angle: Math.PI / 9
         }),
         Matter.Bodies.rectangle(30, 200, 20, 1000, {
             isStatic: true,
@@ -91,13 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const cupImage = new Image();
     cupImage.src = 'cup2.png';
 
-    const arrowImage = new Image();
-    arrowImage.src = 'rainbowArrow.png';
-
     function updateGame() {
         Matter.Engine.update(engine);
         updateIndicator();
-        updateArrowBounce();
         draw();
         if (hexagon.position.y > CONFIG.canvasHeight - 260 && !gameFinished) {
             showIndicator = false;
@@ -154,13 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }, CONFIG.throttleTime);
     }
 
-    function updateArrowBounce() {
-        arrowY += CONFIG.arrowBounceSpeed * arrowDirection;
-        if (arrowY >= CONFIG.arrowBounceHeight || arrowY <= -CONFIG.arrowBounceHeight) {
-            arrowDirection *= -1;
-        }
-    }
-
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -174,7 +157,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // drawScoreMapping();
         drawCup();
-        drawArrow();
     }
 
     function drawBody(body, color) {
@@ -229,21 +211,12 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.stroke();
     }
 
-    function drawArrow() {
-        if (arrowImage.complete) {
-            const arrowX = (CONFIG.canvasWidth / 2) - (arrowImage.width / 2)+45;
-            const arrowBaseY = CONFIG.canvasHeight - CONFIG.groundHeight - 380;
-            const arrowDrawY = arrowBaseY + arrowY;
-            ctx.drawImage(arrowImage, arrowX, arrowDrawY, 84, 95);
-        }
-    }
-
     function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, color) {
         let rot = Math.PI / 2 * 3;
         let x = cx;
         let y = cy;
         const step = Math.PI / spikes;
-
+    
         ctx.beginPath();
         ctx.moveTo(cx, cy - outerRadius);
         for (let i = 0; i < spikes; i++) {
@@ -251,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
             y = cy - Math.sin(rot) * outerRadius;
             ctx.lineTo(x, y);
             rot += step;
-
+    
             x = cx + Math.cos(rot) * innerRadius;
             y = cy - Math.sin(rot) * innerRadius;
             ctx.lineTo(x, y);
@@ -262,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fillStyle = color;
         ctx.fill();
     }
-
+    
     function drawScoreMapping() {
         const colors = ["red", "yellow", "blue", "green", "purple", "black"];
         const scores = [50, 100, 200, 500, 1000, 2000];
@@ -271,24 +244,24 @@ document.addEventListener("DOMContentLoaded", () => {
         const cellWidth = totalWidth / colors.length;
         const cellHeight = 40; // Increase cellHeight to provide space for star and text
         const yPosition = 80;
-
+    
         ctx.font = "30px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-
+    
         for (let i = 0; i < colors.length; i++) {
             const xPosition = padding + i * cellWidth + cellWidth / 2;
-
+    
             if (highlightedScore === scores[i]) {
                 ctx.fillStyle = "lightgray"; // Highlight the background
                 ctx.fillRect(xPosition - cellWidth / 2, yPosition, cellWidth, cellHeight); // Adjust width to highlight full cell
             }
-
+    
             // Draw star shape
             const starOuterRadius = 10;
             const starInnerRadius = 5;
             drawStar(ctx, xPosition, yPosition + starOuterRadius, 5, starOuterRadius, starInnerRadius, colors[i]);
-
+    
             // Draw text
             ctx.fillStyle = "white";
             ctx.fillText(`${scores[i]} 分`, xPosition, yPosition + cellHeight / 2 + starOuterRadius);
@@ -297,12 +270,14 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.strokeText(`${scores[i]} 分`, xPosition, yPosition + cellHeight / 2 + starOuterRadius);
         }
     }
+    
+    
 
     function drawCup() {
-        const cupWidth = 220;
-        const cupHeight = 220 * 281 / 373;
-        const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2);
+        const cupWidth = 200;
+        const cupHeight = 200 * 281 / 373;
         const groundY = CONFIG.canvasHeight - CONFIG.groundHeight;
+        const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2);
         const cupY = groundY - cupHeight + 80;
 
         ctx.drawImage(cupImage, cupX, cupY, cupWidth, cupHeight);
