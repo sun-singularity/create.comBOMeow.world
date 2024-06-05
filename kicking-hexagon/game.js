@@ -5,19 +5,22 @@ document.addEventListener("DOMContentLoaded", () => {
         gravity: 1,
         spawnX: 200,
         spawnY: 100,
-        hexSize: 80,
-        groundHeight: 80,
-        forceMagnitude: 40,
-        angleA: -Math.PI, // Angle A in radians
-        angleB: Math.PI / 18, // Angle B in radians
+        hexSize: 70,
+        groundHeight: 140,
+        forceMagnitude: 30,
+        angleA: -Math.PI,
+        angleB: Math.PI / 18,
+        throttleTime: 2000
     };
-  
+
     const canvas = document.getElementById("gameCanvas");
+    canvas.width = CONFIG.canvasWidth;
+    canvas.height = CONFIG.canvasHeight;
     const ctx = canvas.getContext("2d");
     const engine = Matter.Engine.create();
     const world = engine.world;
     engine.world.gravity.y = CONFIG.gravity;
-  
+
     let gameFinished = false;
     let showIndicator = true;
     let indicatorAngle = CONFIG.angleA;
@@ -25,7 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let lastActionTime = 0;
     let score = 0;
     let scoreUpdated = false;
-  
+    let highlightedScore = null;
+
     const ground = Matter.Bodies.rectangle(
         CONFIG.canvasWidth / 2,
         CONFIG.canvasHeight - CONFIG.groundHeight / 2,
@@ -34,29 +38,30 @@ document.addEventListener("DOMContentLoaded", () => {
         { isStatic: true, label: "ground" }
     );
     Matter.World.add(world, ground);
-  
-    // Hardcoded blocks
     const gap = 650;
     const blocks = [
-        Matter.Bodies.rectangle(0, 410, gap, 20, {
+        Matter.Bodies.rectangle(0, 0, 1600, 20, {
+            isStatic: true,
+            label: "block0",
+        }),
+        Matter.Bodies.rectangle(0, 350, gap, 20, {
             isStatic: true,
             label: "block1",
         }),
-        Matter.Bodies.rectangle(800, 410, gap, 20, {
+        Matter.Bodies.rectangle(800, 350, gap, 20, {
             isStatic: true,
             label: "block2",
         }),
-        Matter.Bodies.rectangle(10, 200, 20, 1000, {
+        Matter.Bodies.rectangle(30, 200, 20, 1000, {
             isStatic: true,
             label: "block3",
         }),
-        Matter.Bodies.rectangle(790, 200, 20, 1000, {
-            isStatic: true,
-            label: "block4",
+        Matter.Bodies.rectangle(770, 200, 20, 1000, {
+            isStatic: true, label: "block4",
         }),
     ];
     blocks.forEach((block) => Matter.World.add(world, block));
-  
+
     const hexagon = Matter.Bodies.polygon(
         CONFIG.spawnX,
         CONFIG.spawnY,
@@ -65,40 +70,46 @@ document.addEventListener("DOMContentLoaded", () => {
         { restitution: 0.6, density: 0.05, label: "hexagon" }
     );
     Matter.World.add(world, hexagon);
-  
+
     const hexagonImage = new Image();
-    hexagonImage.src = 'hexagon2.png';
-  
+    hexagonImage.src = 'hexagon3.png';
+
+    hexagonImage.onload = () => {
+        console.log("Hexagon image loaded successfully.");
+    };
+
+    hexagonImage.onerror = () => {
+        console.error("Failed to load hexagon image.");
+    };
+
     const cupImage = new Image();
-    cupImage.src = 'cup.png';
-  
-    setInterval(() => {
+    cupImage.src = 'cup2.png';
+
+    function updateGame() {
         Matter.Engine.update(engine);
         updateIndicator();
         draw();
-        if (hexagon.position.y > CONFIG.canvasHeight - 200 && !gameFinished) {
+        if (hexagon.position.y > CONFIG.canvasHeight - 260 && !gameFinished) {
+            showIndicator = false;
             calculateScore();
         }
-    }, 1000 / 60);
-  
-    setInterval(() => {
-        if (hexagon.position.y > CONFIG.canvasHeight - 200 && !gameFinished) {
-            calculateScore();
-        }
-    }, 200);
-  
+        requestAnimationFrame(updateGame);
+    }
+
+    updateGame();
+
     canvas.addEventListener("click", applyForceToHexagon);
     document.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             applyForceToHexagon();
         }
     });
-  
+
     function updateIndicator() {
         if (!showIndicator) return;
-  
-        const swingSpeed = 0.02; // Adjust this value to change the swing speed
-  
+
+        const swingSpeed = 0.02;
+
         if (swingingRight) {
             indicatorAngle += swingSpeed;
             if (indicatorAngle >= CONFIG.angleB) {
@@ -113,18 +124,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     }
-  
+
     function applyForceToHexagon() {
         if (gameFinished) return;
-        if (Date.now() - lastActionTime < CONFIG.throttleTime) return; // Cooldown based on throttle time
-  
+        if (Date.now() - lastActionTime < CONFIG.throttleTime) return;
+
         const force = {
             x: CONFIG.forceMagnitude * Math.cos(indicatorAngle),
             y: CONFIG.forceMagnitude * Math.sin(indicatorAngle),
         };
         Matter.Body.applyForce(hexagon, hexagon.position, force);
         lastActionTime = Date.now();
-  
+
         showIndicator = false;
         setTimeout(() => {
             if (!gameFinished) {
@@ -132,29 +143,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }, CONFIG.throttleTime);
     }
-  
+
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
         drawHexagon(hexagon);
-        blocks.forEach((block) => drawBody(block, "rgba(0, 0, 0, 0)")); // 20% transparency
-        drawBody(ground, "rgba(0, 0, 0, 0)"); // 20% transparency
-  
+        blocks.forEach((block) => drawBody(block, "rgba(0, 0, 0, 0)")); // Transparent blocks
+        drawBody(ground, "rgba(0, 0, 0, 0)"); // Transparent ground
+
         if (showIndicator) {
             drawIndicator();
         }
-  
-        drawScoreMapping();
-  
-        // Draw cup on top of the ground
+
+        // drawScoreMapping();
         drawCup();
-  
-        ctx.font = "20px Arial";
-        ctx.fillStyle = "black";
-        ctx.textAlign = "right";
-        ctx.fillText("Score: " + score, canvas.width - 30, 30);
     }
-  
+
     function drawBody(body, color) {
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -168,39 +172,35 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.closePath();
         ctx.fill();
     }
-  
+
     function drawHexagon(body) {
         const aspectRatio = 835 / 736;
         const width = CONFIG.hexSize * 2 * aspectRatio;
         const height = CONFIG.hexSize * 2;
-  
+
         ctx.save();
         ctx.translate(body.position.x, body.position.y);
-        ctx.rotate(body.angle + Math.PI / 6); // Rotate by 30 degrees (PI / 6 radians)
-        ctx.drawImage(
-            hexagonImage,
-            -width / 2,
-            -height / 2,
-            width,
-            height
-        );
+        ctx.rotate(body.angle + Math.PI / 6);
+        if (hexagonImage.complete) {
+            ctx.drawImage(hexagonImage, -width / 2, -height / 2, width, height);
+        } else {
+            ctx.fillRect(-width / 2, -height / 2, width, height);
+        }
         ctx.restore();
     }
-  
+
     function drawIndicator() {
         const indicatorLength = 100;
-        const indicatorX =
-            hexagon.position.x + indicatorLength * Math.cos(indicatorAngle);
-        const indicatorY =
-            hexagon.position.y + indicatorLength * Math.sin(indicatorAngle);
-  
+        const indicatorX = hexagon.position.x + indicatorLength * Math.cos(indicatorAngle);
+        const indicatorY = hexagon.position.y + indicatorLength * Math.sin(indicatorAngle);
+
         ctx.strokeStyle = "black";
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(hexagon.position.x, hexagon.position.y);
         ctx.lineTo(indicatorX, indicatorY);
         ctx.stroke();
-  
+
         ctx.fillStyle = "white";
         ctx.beginPath();
         ctx.moveTo(indicatorX, indicatorY);
@@ -210,42 +210,90 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fill();
         ctx.stroke();
     }
-  
+
+    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, color) {
+        let rot = Math.PI / 2 * 3;
+        let x = cx;
+        let y = cy;
+        const step = Math.PI / spikes;
+    
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+            x = cx + Math.cos(rot) * outerRadius;
+            y = cy - Math.sin(rot) * outerRadius;
+            ctx.lineTo(x, y);
+            rot += step;
+    
+            x = cx + Math.cos(rot) * innerRadius;
+            y = cy - Math.sin(rot) * innerRadius;
+            ctx.lineTo(x, y);
+            rot += step;
+        }
+        ctx.lineTo(cx, cy - outerRadius);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    
     function drawScoreMapping() {
-        const colors = ["red", "orange", "yellow", "green", "blue", "purple"];
-        const scores = [100, 100, 200, 200, 500, 1000];
-  
-        ctx.font = "16px Arial";
-        ctx.textAlign = "left";
+        const colors = ["red", "yellow", "blue", "green", "purple", "black"];
+        const scores = [50, 100, 200, 500, 1000, 2000];
+        const padding = 0;
+        const totalWidth = canvas.width - padding * 2;
+        const cellWidth = totalWidth / colors.length;
+        const cellHeight = 40; // Increase cellHeight to provide space for star and text
+        const yPosition = 80;
+    
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+    
         for (let i = 0; i < colors.length; i++) {
-            ctx.fillStyle = colors[i];
-            ctx.fillRect(10, 10 + i * 25, 20, 20);
-            ctx.fillStyle = "black";
-            ctx.fillText(" = " + scores[i] + " points", 40, 20 + i * 25);
+            const xPosition = padding + i * cellWidth + cellWidth / 2;
+    
+            if (highlightedScore === scores[i]) {
+                ctx.fillStyle = "lightgray"; // Highlight the background
+                ctx.fillRect(xPosition - cellWidth / 2, yPosition, cellWidth, cellHeight); // Adjust width to highlight full cell
+            }
+    
+            // Draw star shape
+            const starOuterRadius = 10;
+            const starInnerRadius = 5;
+            drawStar(ctx, xPosition, yPosition + starOuterRadius, 5, starOuterRadius, starInnerRadius, colors[i]);
+    
+            // Draw text
+            ctx.fillStyle = "white";
+            ctx.fillText(`${scores[i]} 分`, xPosition, yPosition + cellHeight / 2 + starOuterRadius);
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.strokeText(`${scores[i]} 分`, xPosition, yPosition + cellHeight / 2 + starOuterRadius);
         }
     }
-  
+    
+    
+
     function drawCup() {
-        const cupWidth = 200; // Adjust the width of the cup
-        const cupHeight = 200 * 281 / 373; // Adjust the height of the cup
+        const cupWidth = 200;
+        const cupHeight = 200 * 281 / 373;
         const groundY = CONFIG.canvasHeight - CONFIG.groundHeight;
         const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2);
         const cupY = groundY - cupHeight + 80;
-  
+
         ctx.drawImage(cupImage, cupX, cupY, cupWidth, cupHeight);
     }
-  
+
     function calculateScore() {
         const angle = hexagon.angle % (Math.PI * 2);
         const normalizedAngle = (angle + Math.PI * 2) % (Math.PI * 2); // Normalize angle to 0 - 2π
         const segmentAngle = Math.PI / 3; // 60 degrees per segment
-  
+
         const edgeIndex = Math.floor(normalizedAngle / segmentAngle);
-        // red, purple, blue, green, yellow, orange
-        const edgeScores = [100, 1000, 500, 200, 200, 100];
+        // yellow, red, BLACK, purple, green, blue
+        const edgeScores = [100, 50, 2000, 1000, 500, 200];
         score = edgeScores[edgeIndex];
-  
+        highlightedScore = score; // Highlight the score
+
         if (!scoreUpdated && score > 0) {
             scoreUpdated = true;
             showIndicator = false;
@@ -253,69 +301,36 @@ document.addEventListener("DOMContentLoaded", () => {
             document.removeEventListener("keydown", handleKeydown);
             setTimeout(() => {
                 triggerScanner(score); // Trigger scanner with the score
-                showScanPopup(); // Show scan popup
+                showScanPopup(score); // Show scan popup with the score
                 setTimeout(() => {
                     window.location.reload();
                 }, 5000); // Refresh the page after 5 seconds
             }, 5000);
         }
     }
-  
+
     function handleKeydown(event) {
         if (event.key === "Enter") {
             applyForceToHexagon();
         }
     }
-  
-    /* Config functions from Chill Fishing game */
-    function showConfigPopup() {
-        document.getElementById('config-popup').style.display = 'block';
-    }
-  
-    function loadConfig() {
-        const configString = localStorage.getItem('gameConfig');
-        if (configString) {
-            const config = JSON.parse(configString);
-            document.getElementById('gravity').value = config.gravity;
-            document.getElementById('hex-size').value = config.hexSize;
-            document.getElementById('throttle-time').value = config.throttleTime;
-  
-            CONFIG.gravity = config.gravity;
-            CONFIG.hexSize = config.hexSize;
-            CONFIG.throttleTime = config.throttleTime;
-        }
-    }
-  
-    function updateConfig() {
-        const newConfig = {
-            gravity: parseFloat(document.getElementById('gravity').value),
-            hexSize: parseInt(document.getElementById('hex-size').value, 10),
-            throttleTime: parseInt(document.getElementById('throttle-time').value, 10)
-        };
-  
-        localStorage.setItem('gameConfig', JSON.stringify(newConfig));
-        loadConfig();
-        document.getElementById('config-popup').style.display = 'none';
-    }
-  
-    /* Scan and Scanner functions from Chill Fishing game */
+
     function triggerScanner(score) {
         const scannerArgument = score.toString();  // Convert score to a string for the scanner argument
         console.log("Scanner triggered with score:", scannerArgument);
-        alert(`Game Over! Score: ${scannerArgument}`);
-  
+        // alert(`Game Over! Score: ${scannerArgument}`);
+
         if (window.Android) {
             window.Android.startScanner(scannerArgument); // Pass the specific prize argument to Android
         } else {
             console.log("Scanner feature not available on this platform.");
         }
     }
-  
-    function showScanPopup() {
+
+    function showScanPopup(score) {
+        const scoreDisplay = document.getElementById('score-display');
+        scoreDisplay.textContent = `${score}分`;
         document.getElementById('scan-popup').style.display = 'block';
     }
-  
-    window.onload = function() {
-        loadConfig();
-    };
+
 });
