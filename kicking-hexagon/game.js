@@ -55,9 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
             isStatic: true,
             label: "hBlock2",
         }),
-        Matter.Bodies.rectangle(570, 240, 40, 80, {
+        Matter.Bodies.rectangle(550, 400, 40, 180, {
             isStatic: true,
-            label: "vBlock2",
+            label: "iceCreamBlock",
         }),
         Matter.Bodies.rectangle(30, 200, 20, 1000, {
             isStatic: true,
