@@ -73,12 +73,12 @@ const balloonPositions = [
 
 // Mapping color to score
 const colorToScore = {
-  "#ffd700": 10,
-  "#c0c0c0": 20,
-  "#cd7f32": 50,
+  "#ffd700": 100,
+  "#c0c0c0": 100,
+  "#cd7f32": 100,
   "#00ff00": 100,
-  "#0000ff": 200,
-  "#ff4500": 500,
+  "#0000ff": 100,
+  "#ff4500": 100,
   transparent: 0,
 };
 
@@ -112,6 +112,7 @@ Promise.all([
           },
         },
         color: color,
+        hit: false, // Initialize the hit property to false
         collisionFilter: {
           category: 0x0002, // Different category from bullets
           mask: 0x0002,
@@ -126,15 +127,15 @@ Promise.all([
     Composite.add(world, balloons);
 
     // Create the gun
-    const gun = Bodies.rectangle(gunX, gunY, 30, 10, { // Half size
+    const gun = Bodies.rectangle(gunX, gunY, 30, 10, {
       label: "gun",
       isStatic: true,
       render: {
         sprite: {
           texture: rocketImg.src,
-          xScale: 0.25, // Scale down to 50% opacity
-          yScale: 0.25, // Scale down to 50% opacity
-          opacity: 0.5, // Set opacity to 50%
+          xScale: 0.25,
+          yScale: 0.25,
+          opacity: 0.5,
         },
       },
     });
@@ -145,46 +146,46 @@ Promise.all([
       isStatic: true,
       render: { fillStyle: "grey" },
       collisionFilter: {
-        category: 0x0001, // Same category as bullets
-        mask: 0xffffffff, // Collide with everything
+        category: 0x0001,
+        mask: 0xffffffff,
       },
-      restitution: 1, // Perfectly elastic collision
+      restitution: 1,
     });
 
     const rightWall = Bodies.rectangle(610, 400, 20, 800, {
       isStatic: true,
       render: { fillStyle: "grey" },
       collisionFilter: {
-        category: 0x0001, // Same category as bullets
-        mask: 0xffffffff, // Collide with everything
+        category: 0x0001,
+        mask: 0xffffffff,
       },
-      restitution: 1, // Perfectly elastic collision
+      restitution: 1,
     });
 
     Composite.add(world, [leftWall, rightWall]);
 
     // Function to shoot a bullet (rocket)
     function shootBullet() {
-      const angle = gun.angle - Math.PI / 2; // Adjusting angle to match gun rotation
+      const angle = gun.angle - Math.PI / 2;
       const bullet = Bodies.rectangle(
         gun.position.x + Math.cos(angle) * 40,
         gun.position.y + Math.sin(angle) * 40,
-        20, // Double the width
-        40, // Double the height
+        20,
+        40,
         {
           label: "bullet",
           render: {
             sprite: {
               texture: rocketImg.src,
-              xScale: 0.2, // Double the size
-              yScale: 0.2, // Double the size
+              xScale: 0.2,
+              yScale: 0.2,
             },
           },
           frictionAir: 0,
-          restitution: 1, // Perfectly elastic collision
+          restitution: 1,
           collisionFilter: {
             category: 0x0001,
-            mask: 0x0001, // Collide only with walls
+            mask: 0x0001,
           },
         }
       );
@@ -192,7 +193,7 @@ Promise.all([
         x: 5 * Math.cos(angle),
         y: 5 * Math.sin(angle),
       });
-      Body.setAngle(bullet, angle - Math.PI / 2); // Rotate 90 degrees anti-clockwise
+      Body.setAngle(bullet, angle - Math.PI / 2);
       Composite.add(world, bullet);
 
       // Reset the countdown timer
@@ -232,6 +233,7 @@ Promise.all([
     // Function to reset balloons (gems)
     function resetBalloons() {
       balloons.forEach((balloon) => {
+        balloon.hit = false; // Reset hit property
         const newColor = Object.keys(colorToScore).filter(
           (color) => color !== "transparent"
         )[Math.floor(Math.random() * (Object.keys(colorToScore).length - 1))];
@@ -245,8 +247,24 @@ Promise.all([
 
     // Function to show game over dialog
     function showGameOverDialog() {
-      const dialog = document.getElementById("game-over-dialog");
+      const dialog = document.getElementById("scan-popup");
       dialog.style.display = "block";
+      setTimeout(() => {
+          triggerScanner(score); // Pass the current score to the scanner even if it was a fail
+          location.reload();
+      }, 6000);
+    }
+
+    function triggerScanner(score) {
+      const scannerArgument = score.toString();  // Convert score to a string for the scanner argument
+      console.log("Scanner triggered with score:", scannerArgument);
+      alert(`Game Over! Score: ${scannerArgument}`);
+
+      if (window.Android) {
+          window.Android.startScanner(scannerArgument); // Pass the specific prize argument to Android
+      } else {
+          console.log("Scanner feature not available on this platform.");
+      }
     }
 
     // Function to restart the game
@@ -273,16 +291,19 @@ Promise.all([
       bullets.forEach((bullet) => {
         balloons.forEach((balloon) => {
           if (Matter.Bounds.overlaps(bullet.bounds, balloon.bounds)) {
-            // Add score
-            score += colorToScore[balloon.color];
-            document.getElementById("score-value").textContent = score;
+            if (!balloon.hit) { // Check if balloon is not already hit
+              // Add score
+              score += colorToScore[balloon.color];
+              document.getElementById("score-value").textContent = score;
 
-            // Change balloon color to transparent
-            balloon.render.fillStyle = "rgba(0, 0, 0, 0)";
-            balloon.render.sprite.texture = ""; // Remove the texture to make it transparent
+              // Change balloon color to transparent
+              balloon.render.fillStyle = "rgba(0, 0, 0, 0)";
+              balloon.render.sprite.texture = ""; // Remove the texture to make it transparent
+              balloon.hit = true; // Mark the balloon as hit
 
-            // Check for game over
-            checkGameOver();
+              // Check for game over
+              checkGameOver();
+            }
           }
         });
 
@@ -306,17 +327,17 @@ Promise.all([
     // Smoothly rotate the gun back and forth
     let currentAngle = -Math.PI / 3;
     const maxAngle = Math.PI / 3;
-    const angleStep = 0.01; // Small step for smooth transition
+    const angleStep = 0.01;
 
     function rotateGun() {
       currentAngle += angleStep * direction;
       if (currentAngle >= maxAngle || currentAngle <= -maxAngle) {
-        direction *= -1; // Reverse direction when reaching the limits
+        direction *= -1;
       }
       Body.setAngle(gun, currentAngle);
     }
 
-    setInterval(rotateGun, 16); // Approximately 60 frames per second
+    setInterval(rotateGun, 16);
 
     // Attach the restartGame function to the window object to make it accessible globally
     window.restartGame = restartGame;
