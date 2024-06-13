@@ -39,8 +39,12 @@ const gunY = 730;
 let score = 0;
 let countdown = 30;
 let intervalId;
-let balloonResetTimeout;
 let direction = 1;
+
+// Collision categories
+const CATEGORY_BULLET = 0x0001;
+const CATEGORY_BALLOON = 0x0002;
+const CATEGORY_WALL = 0x0004;
 
 // Hardcoded balloon positions and colors
 const balloonPositions = [
@@ -82,6 +86,12 @@ const colorToScore = {
   transparent: 0,
 };
 
+// Object pool
+const bodyPool = {
+  balloons: [],
+  bullets: [],
+};
+
 // Function to load images and return a promise
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -98,10 +108,34 @@ Promise.all([
   ...Array.from({ length: 8 }, (_, i) => loadImage(`gem-${i}.png`)),
 ])
   .then(([rocketImg, ...gemImages]) => {
+    // Function to get or create bodies
+    function getBody(type, x, y, radius, options) {
+      let body;
+      if (bodyPool[type].length > 0) {
+        body = bodyPool[type].pop();
+        Matter.Body.setPosition(body, { x, y });
+        Matter.Body.setAngle(body, 0);
+        Matter.Body.setVelocity(body, { x: 0, y: 0 });
+      } else {
+        if (type === 'balloons') {
+          body = Bodies.circle(x, y, radius, options);
+        } else if (type === 'bullets') {
+          body = Bodies.rectangle(x, y, 20, 40, options);
+        }
+      }
+      Matter.World.add(world, body);
+      return body;
+    }
+
+    function removeBody(type, body) {
+      Matter.World.remove(world, body);
+      bodyPool[type].push(body);
+    }
+
     // Function to create balloons (gems)
     function createBalloon(x, y, color) {
       const gemIndex = Math.floor(Math.random() * gemImages.length);
-      return Bodies.circle(x, y, balloonRadius, {
+      return getBody('balloons', x, y, balloonRadius, {
         label: "balloon",
         isStatic: true,
         render: {
@@ -112,10 +146,10 @@ Promise.all([
           },
         },
         color: color,
-        hit: false, // Initialize the hit property to false
+        hit: false,
         collisionFilter: {
-          category: 0x0002, // Different category from bullets
-          mask: 0x0002,
+          category: CATEGORY_BALLOON,
+          mask: 0x0000, // Do not collide with anything
         },
       });
     }
@@ -146,8 +180,8 @@ Promise.all([
       isStatic: true,
       render: { fillStyle: "grey" },
       collisionFilter: {
-        category: 0x0001,
-        mask: 0xffffffff,
+        category: CATEGORY_WALL,
+        mask: CATEGORY_BULLET, // Collide with bullets only
       },
       restitution: 1,
     });
@@ -156,8 +190,8 @@ Promise.all([
       isStatic: true,
       render: { fillStyle: "grey" },
       collisionFilter: {
-        category: 0x0001,
-        mask: 0xffffffff,
+        category: CATEGORY_WALL,
+        mask: CATEGORY_BULLET, // Collide with bullets only
       },
       restitution: 1,
     });
@@ -167,28 +201,22 @@ Promise.all([
     // Function to shoot a bullet (rocket)
     function shootBullet() {
       const angle = gun.angle - Math.PI / 2;
-      const bullet = Bodies.rectangle(
-        gun.position.x + Math.cos(angle) * 40,
-        gun.position.y + Math.sin(angle) * 40,
-        20,
-        40,
-        {
-          label: "bullet",
-          render: {
-            sprite: {
-              texture: rocketImg.src,
-              xScale: 0.2,
-              yScale: 0.2,
-            },
+      const bullet = getBody('bullets', gun.position.x + Math.cos(angle) * 40, gun.position.y + Math.sin(angle) * 40, 0, {
+        label: "bullet",
+        render: {
+          sprite: {
+            texture: rocketImg.src,
+            xScale: 0.2,
+            yScale: 0.2,
           },
-          frictionAir: 0,
-          restitution: 1,
-          collisionFilter: {
-            category: 0x0001,
-            mask: 0x0001,
-          },
-        }
-      );
+        },
+        frictionAir: 0,
+        restitution: 1,
+        collisionFilter: {
+          category: CATEGORY_BULLET,
+          mask: CATEGORY_WALL, // Collide with walls only
+        },
+      });
       Body.setVelocity(bullet, {
         x: 5 * Math.cos(angle),
         y: 5 * Math.sin(angle),
@@ -211,7 +239,6 @@ Promise.all([
     // Reset countdown timer
     function resetCountdownTimer() {
       clearInterval(intervalId);
-      clearTimeout(balloonResetTimeout);
       countdown = 30;
       updateProgressBar();
       intervalId = setInterval(() => {
@@ -314,7 +341,7 @@ Promise.all([
           bullet.position.x > 600 ||
           bullet.position.y > 800
         ) {
-          Composite.remove(world, bullet);
+          removeBody('bullets', bullet);
         } else {
           // Align the bullet angle with its velocity, adjusted for 90 degrees anti-clockwise
           const velocity = bullet.velocity;
