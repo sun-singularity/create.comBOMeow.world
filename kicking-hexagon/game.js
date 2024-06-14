@@ -10,8 +10,46 @@ document.addEventListener("DOMContentLoaded", () => {
         forceMagnitude: 50,
         angleA: - Math.PI / 2 - Math.PI / 2,  // 45 degrees - 22.5 degrees
         angleB: - Math.PI / 2 + Math.PI / 2,  // 45 degrees + 22.5 degrees
-        throttleTime: 2000
+        throttleTime: 1000
     };
+
+    let audioThreshold = parseInt(localStorage.getItem('audioThreshold')) || 0; // Initialize threshold value from localStorage or default to 0
+    const controlBall = document.getElementById('control-ball');
+    let isDragging = false;
+
+    controlBall.style.bottom = `${audioThreshold * 2}px`; // Set initial position of control ball based on threshold
+
+    // Event listeners for dragging
+    controlBall.addEventListener('mousedown', startDrag);
+    controlBall.addEventListener('touchstart', startDrag, { passive: false });
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('touchmove', onDrag, { passive: false });
+    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('touchend', stopDrag);
+
+    function startDrag(event) {
+        event.preventDefault();
+        isDragging = true;
+    }
+
+    function onDrag(event) {
+        if (!isDragging) return;
+        event.preventDefault();
+        const volumeBarContainer = document.getElementById('volume-bar-container');
+        const containerRect = volumeBarContainer.getBoundingClientRect();
+        const clientY = event.clientY || event.touches[0].clientY;
+        const newY = clientY - containerRect.top;
+        const clampedY = Math.max(0, Math.min(containerRect.height, newY));
+        const threshold = Math.round((containerRect.height - clampedY) * 0.5); // Scale to 0-100
+        audioThreshold = threshold;
+        controlBall.style.bottom = `${containerRect.height - clampedY}px`;
+    }
+
+    function stopDrag(event) {
+        event.preventDefault();
+        isDragging = false;
+        localStorage.setItem('audioThreshold', audioThreshold); // Save threshold to localStorage
+    }
 
     const canvas = document.getElementById("gameCanvas");
     canvas.width = CONFIG.canvasWidth;
@@ -35,36 +73,44 @@ document.addEventListener("DOMContentLoaded", () => {
         CONFIG.canvasHeight - CONFIG.groundHeight / 2,
         CONFIG.canvasWidth,
         CONFIG.groundHeight,
-        { isStatic: true, label: "ground" }
+        { isStatic: true, label: "ground", friction: 1 }
     );
     Matter.World.add(world, ground);
     const blocks = [
         Matter.Bodies.rectangle(0, 0, 1600, 20, {
             isStatic: true,
             label: "block0",
+            friction: 1
         }),
         Matter.Bodies.rectangle(0, 400, 620, 40, {
             isStatic: true,
             label: "hBlock1",
+            friction: 1
         }),
         Matter.Bodies.rectangle(280, 330, 40, 100, {
             isStatic: true,
             label: "vBlock1",
+            friction: 1
         }),
         Matter.Bodies.rectangle(420, 290, 320, 40, {
             isStatic: true,
             label: "hBlock2",
+            friction: 1
         }),
         Matter.Bodies.rectangle(550, 400, 40, 180, {
             isStatic: true,
             label: "iceCreamBlock",
+            friction: 1
         }),
         Matter.Bodies.rectangle(30, 200, 20, 1000, {
             isStatic: true,
             label: "block3",
+            friction: 1
         }),
         Matter.Bodies.rectangle(770, 200, 20, 1000, {
-            isStatic: true, label: "block4",
+            isStatic: true,
+            label: "block4",
+            friction: 1
         }),
     ];
     blocks.forEach((block) => Matter.World.add(world, block));
@@ -74,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
         CONFIG.spawnY,
         6,
         CONFIG.hexSize,
-        { restitution: 0.6, density: 0.05, friction:1,  label: "hexagon" }
+        { restitution: 0.6, density: 0.05, friction: 1, label: "hexagon" }
     );
     Matter.World.add(world, hexagon);
 
@@ -144,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applyForceToHexagon() {
-        if (gameFinished) return;
+        if (gameFinished || hexagon.position.y > CONFIG.canvasHeight - 260) return; // Disable applyForceToHexagon when the hexagon is below the specified position
         if (Date.now() - lastActionTime < CONFIG.throttleTime) return;
 
         const force = {
@@ -232,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function drawMovingIndicator() {
         const amplitude = 20;
         const frequency = 0.01;
-        const cupX = (CONFIG.canvasWidth / 2) +260;
+        const cupX = (CONFIG.canvasWidth / 2) + 260;
         const cupY = CONFIG.canvasHeight - CONFIG.groundHeight - 350; // Position just above the cup
         const time = Date.now() * frequency;
         const yOffset = Math.sin(time) * amplitude;
@@ -247,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const cupWidth = 200;
         const cupHeight = 200 * 281 / 373;
         const groundY = CONFIG.canvasHeight - CONFIG.groundHeight;
-        const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2) +260;
+        const cupX = (CONFIG.canvasWidth / 2) - (cupWidth / 2) + 260;
         const cupY = groundY - cupHeight + 80;
 
         ctx.drawImage(cupImage, cupX, cupY, cupWidth, cupHeight);
@@ -303,4 +349,46 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('scan-popup').style.display = 'block';
     }
 
+    // Set up audio input handling
+    let audioContext;
+    let analyser;
+    let microphone;
+    let javascriptNode;
+    const volumeBar = document.getElementById('volume-bar');
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            microphone = audioContext.createMediaStreamSource(stream);
+            javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+            analyser.smoothingTimeConstant = 0.8;
+            analyser.fftSize = 1024;
+
+            microphone.connect(analyser);
+            analyser.connect(javascriptNode);
+            javascriptNode.connect(audioContext.destination);
+
+            javascriptNode.onaudioprocess = () => {
+                const array = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(array);
+
+                const values = array.reduce((a, b) => a + b);
+                const average = values / array.length;
+
+                const volume = Math.min(100, Math.max(0, average)); // Scale average to 0-100
+                volumeBar.style.height = `${volume * 2}px`; // Scale height (2px per unit)
+
+                const threshold = parseInt(localStorage.getItem('audioThreshold')) || 0; // Retrieve threshold from localStorage
+                if (average > threshold) {
+                    applyForceToHexagon();
+                }
+            };
+        }).catch((err) => {
+            console.error('Error accessing microphone:', err);
+        });
+    } else {
+        console.error('getUserMedia not supported on your browser!');
+    }
 });
