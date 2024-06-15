@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Endless Runner Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+        <!-- Info Display -->
+        <div id="info">
+            <div>Mode: <span id="current-mode">Practice</span></div>
+            <div>Score: <span id="current-score">0</span></div>
+            <div>Lives: <span id="remaining-lives">∞</span></div>
+        </div>
+
+        <!-- Scan Popup -->
+        <div id="scan-popup" style="display: none;">
+            <div id="popup-content">
+                <h2>Game Over!</h2>
+                <h2 id="score-display"></h2>
+                <h1>Prepare your phone! Scan QR to save points</h1>
+            </div>
+        </div>
+
+        <!-- Volume Bar Indicator -->
+        <div id="volume-bar-container">
+            <div id="volume-bar"></div>
+            <div id="control-ball"></div>
+        </div>
+
+        <!-- Config Sliders -->
+        <div id="config-container">
+            <label for="volume-threshold">Volume Threshold</label>
+            <input type="range" id="volume-threshold" min="0" max="100" value="0">
+
+            <label for="min-frequency">Min Frequency</label>
+            <input type="number" id="min-frequency" min="0" max="20000" value="0">
+
+            <label for="max-frequency">Max Frequency</label>
+            <input type="number" id="max-frequency" min="0" max="20000" value="20000">
+
+            <label for="snr-threshold">SNR Threshold</label>
+            <input type="number" id="snr-threshold" min="0" max="100" value="0">
+        </div>
+
+        <!-- Frequency Chart -->
+        <canvas id="frequencyChart" width="800" height="200"></canvas>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>

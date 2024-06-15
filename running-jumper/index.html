@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Endless Runner Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+        <!-- Info Display -->
+        <div id="info">
+            <div>Mode: <span id="current-mode">Practice</span></div>
+            <div>Score: <span id="current-score">0</span></div>
+            <div>Lives: <span id="remaining-lives">∞</span></div>
+        </div>
+
+        <!-- Scan Popup -->
+        <div id="scan-popup" style="display: none;">
+            <div id="popup-content">
+                <h2>挑戰完成！</h2>
+                <h2 id="score-display"></h2>
+                <h1>請準備手機！掃QR儲分</h1>
+            </div>
+        </div>
+        <!-- Volume Bar Indicator -->
+        <div id="volume-bar-container">
+            <div id="volume-bar"></div>
+            <div id="control-ball"></div>
+        </div>
+
+        <!-- Toggle Filter Button -->
+        <button id="toggle-filter-button">1</button>
+        
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
