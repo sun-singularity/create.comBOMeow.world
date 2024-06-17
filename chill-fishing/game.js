@@ -13,7 +13,11 @@ let gameInterval;  // Declare outside to manage its state globally
 let animateCatInterval;  // Declare outside to manage its state globally
 let catCatchTimeout;  // Declare outside to manage its state globally
 let accelerationFactor = 0.9; // Each level will speed up the game by 10%
+let throttleTime = 3000; // Default throttle time
+let inputBlocked = false; // Variable to block user inputs
+
 const nextScoreSpan = document.getElementById('next-score-value');
+
 function updateGrids() {
     gridContents.unshift(gridContents.pop()); // Rotate array right
     updateGridVisuals();
@@ -25,6 +29,7 @@ function updateGridVisuals() {
         gridElements[index].style.backgroundImage = `url(${fishImage})`;
     });
 }
+
 function animateCat() {
     clearInterval(animateCatInterval); // Clear any existing animation interval
     let currentFrame = 0;
@@ -66,40 +71,31 @@ function animateCatCatch(success) {
     }
 }
 
-
-
-
 function updateScore() {
     if (fishCaught < scoreValues.length) {
         currentScore += scoreValues[fishCaught];
         if (fishCaught < scoreValues.length - 1) {
             nextScoreSpan.textContent = scoreValues[fishCaught + 1];
         } else {
-            nextScoreSpan.textContent = "Max Score Reached";
+            nextScoreSpan.textContent = "大癲！爆左分！";
         }
         fishCaught++;
     }
 }
 
-function throttle(func, limit) {
-    let lastRan;
-    return function() {
-        const context = this;
-        const args = arguments;
-        if (!lastRan || (Date.now() - lastRan) >= limit) {
-            func.apply(context, args);
-            lastRan = Date.now();
-        }
+function handleUserInput() {
+    if (!inputBlocked) {
+        inputBlocked = true; // Block further inputs
+        checkGridNine(); // Perform the check
+
+        setTimeout(() => {
+            inputBlocked = false; // Unblock inputs after throttle time
+        }, throttleTime);
     }
 }
 
-let throttledCheckGridNine = throttle(function() {
-    checkGridNine();
-}, 3000);
-
-
-// Function to check grid status
 function checkGridNine() {
+    console.log('realCheck')
     // Play meow sound
     const meowAudio = new Audio('meow.mp3');
     meowAudio.play();
@@ -148,14 +144,11 @@ function checkGridNine() {
     }
 }
 
-
-
 function updateGameSpeed() {
     const newInterval = 500 * Math.pow(accelerationFactor, fishCaught - 1); // Calculate new speed based on level
     clearInterval(gameInterval); // Clear the existing interval
     gameInterval = setInterval(updateGrids, newInterval); // Set a new interval with updated speed
 }
-
 
 function startGame() {
     if (!gameInterval) {
@@ -188,6 +181,9 @@ function loadConfig() {
         accelerationFactor = config.accelerationFactor || 0.9;
         document.getElementById('accel-factor').value = accelerationFactor;
 
+        throttleTime = config.throttleTime || 3000;
+        document.getElementById('throttle-time').value = throttleTime;
+
         // Update the first score value in the HTML
         nextScoreSpan.textContent = scoreValues[0];
 
@@ -197,8 +193,10 @@ function loadConfig() {
         // Default values if no config is found in localStorage
         scoreValues = [200, 300, 350, 400, 450, 500, 550, 600, 650, 700, 1500];
         accelerationFactor = 0.9;
+        throttleTime = 3000;
         document.getElementById('score-values').value = scoreValues.join(',');
         document.getElementById('accel-factor').value = accelerationFactor;
+        document.getElementById('throttle-time').value = throttleTime;
 
         // Update the first score value in the HTML
         nextScoreSpan.textContent = scoreValues[0];
@@ -209,9 +207,10 @@ function updateConfig() {
     const newConfig = {
         accelerationFactor: parseFloat(document.getElementById('accel-factor').value),
         scoreValues: document.getElementById('score-values').value.split(',').map(Number),
+        throttleTime: parseInt(document.getElementById('throttle-time').value, 10)
     };
 
-    if (newConfig.accelerationFactor >= 0.1 && newConfig.accelerationFactor <= 2 && newConfig.scoreValues.every(Number.isInteger)) {
+    if (newConfig.accelerationFactor >= 0.1 && newConfig.accelerationFactor <= 2 && newConfig.scoreValues.every(Number.isInteger) && newConfig.throttleTime >= 1000 && newConfig.throttleTime <= 30000) {
         localStorage.setItem('gameConfig', JSON.stringify(newConfig)); // Store the config in localStorage
         loadConfig(); // Reload configuration to apply changes
         console.log("Configuration updated:", newConfig);
@@ -224,7 +223,6 @@ function updateConfig() {
     document.getElementById('config-popup').style.display = 'none'; // Close the config popup
 }
 
-
 // Add event listener to level display to show config popup
 document.getElementById('next-score').addEventListener('click', function(event) {
     event.stopPropagation(); // Prevent propagation to stop triggering checkGridNine
@@ -235,7 +233,6 @@ document.getElementById('next-score').addEventListener('click', function(event) 
 document.getElementById('config-popup').addEventListener('click', function(event) {
     event.stopPropagation();
 });
-
 
 function triggerScanner(score) {
     const scannerArgument = score.toString();  // Convert score to a string for the scanner argument
@@ -248,6 +245,7 @@ function triggerScanner(score) {
         console.log("Scanner feature not available on this platform.");
     }
 }
+
 function showCatchDialog(success, score) {
     const dialog = document.getElementById('catch-dialog');
     const image = document.getElementById('catch-result-image');
@@ -256,10 +254,10 @@ function showCatchDialog(success, score) {
     // Set image and message based on success
     if (success) {
         image.src = 'happy.png'; // Ensure you have 'happy.png' in your assets
-        message.textContent = `Catch Success! Score: ${score}`;
+        message.textContent = `耶！捉倒魚了！加左${score}分！`;
     } else {
         image.src = 'sad.png'; // Ensure you have 'sad.png' in your assets
-        message.textContent = 'Catch Fail';
+        message.textContent = '吖！食骨添！';
     }
 
     // Display the dialog
@@ -273,18 +271,15 @@ function showCatchDialog(success, score) {
     }, 3000); // Remove the dialog after 3 seconds
 }
 
-
-
 function showScanPopup() {
     console.log('show scan popup')
     scanPopup.style.display = 'block';
 }
 
-
-document.addEventListener('click', throttledCheckGridNine);
+document.addEventListener('click', handleUserInput);
 document.addEventListener('keydown', function(event) {
     if (event.keyCode === 13) {  // Enter key
-        throttledCheckGridNine();
+        handleUserInput();
     }
 });
 

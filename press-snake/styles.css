@@ -1,0 +1,28 @@
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+}
+
+canvas {
+    border: 1px solid #000;
+}
+
+#attemptsCounter {
+    margin-top: 20px;
+    font-size: 24px;
+    color: #333;
+}
+
+#burnIndicator {
+    margin-top: 20px;
+    font-size: 24px;
+    color: #ff0000;
+    display: none;
+    position:absolute;
+    bottom:0px;
+}
