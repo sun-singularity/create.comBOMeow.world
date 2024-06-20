@@ -311,8 +311,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             analyser.smoothingTimeConstant = 0.8;
             analyser.fftSize = 1024;
+            
+             // Create a band-pass filter to isolate human voice frequencies
+            const bandPassFilter = audioContext.createBiquadFilter();
+            bandPassFilter.type = 'bandpass';
+            bandPassFilter.frequency.value = 1000; // Center frequency of the band-pass filter
+            bandPassFilter.Q.value = 1; // Quality factor, adjust as necessary
 
-            microphone.connect(analyser);
+            microphone.connect(bandPassFilter);
+            bandPassFilter.connect(analyser);
             analyser.connect(javascriptNode);
             javascriptNode.connect(audioContext.destination);
 
