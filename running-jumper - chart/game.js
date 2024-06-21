@@ -264,13 +264,60 @@ document.addEventListener("DOMContentLoaded", () => {
         player.blinkEnd = 0;
         updateInfo();
     }
-
     // Audio input handling
     let audioContext;
     let analyser;
     let microphone;
     let javascriptNode;
+    let bandPassFilter;
+    let bandPassFrequency = 1000;
+    let bandPassQuality = 1; 
+
     const volumeBar = document.getElementById('volume-bar');
+
+    // Update frequency display
+    const updateFrequencyDisplay = () => {
+        frequencyValueElement.textContent = bandPassFrequency;
+        const bandPassFilter = audioContext.createBiquadFilter();
+            bandPassFilter.type = 'bandpass';
+            bandPassFilter.frequency.value = bandPassFrequency; // Center frequency of the band-pass filter
+            bandPassFilter.Q.value = bandPassQuality; // Quality factor, adjust as necessary
+
+            microphone.connect(bandPassFilter);
+            bandPassFilter.connect(analyser);
+    };
+
+    const frequencyValueElement = document.getElementById('frequency-value');
+    const decreaseFrequencyButton = document.getElementById('decrease-frequency');
+    const originalFrequencyButton = document.getElementById('original-frequency');
+    const increaseFrequencyButton = document.getElementById('increase-frequency');
+
+    decreaseFrequencyButton.addEventListener('click', () => {
+        bandPassFrequency = 300;
+        if (bandPassFilter) {
+            bandPassFilter.frequency.value = bandPassFrequency;
+        }
+        bandPassQuality = 1;
+        updateFrequencyDisplay();
+    });
+
+    originalFrequencyButton.addEventListener('click', () => {
+        bandPassFrequency = 1000;
+        if (bandPassFilter) {
+            bandPassFilter.frequency.value = bandPassFrequency;
+        }
+        bandPassQuality = 1;
+        updateFrequencyDisplay();
+    });
+
+    increaseFrequencyButton.addEventListener('click', () => {
+        bandPassFrequency = 1700; 
+        if (bandPassFilter) {
+            bandPassFilter.frequency.value = bandPassFrequency;
+        }
+        bandPassQuality = 1;
+        updateFrequencyDisplay();
+    });
 
     // Frequency chart setup
     const frequencyChartCtx = document.getElementById('frequencyChart').getContext('2d');
@@ -301,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-
+    
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -312,15 +359,16 @@ document.addEventListener("DOMContentLoaded", () => {
             analyser.smoothingTimeConstant = 0.8;
             analyser.fftSize = 1024;
             
-             // Create a band-pass filter to isolate human voice frequencies
+            // Create a band-pass filter to isolate human voice frequencies
+            //let bandPassFrequency = 1000; // Initial frequency value
+            
             const bandPassFilter = audioContext.createBiquadFilter();
             bandPassFilter.type = 'bandpass';
-            bandPassFilter.frequency.value = 1000; // Center frequency of the band-pass filter
-            bandPassFilter.Q.value = 1; // Quality factor, adjust as necessary
+            bandPassFilter.frequency.value = bandPassFrequency; // Center frequency of the band-pass filter
+            bandPassFilter.Q.value = bandPassQuality; // Quality factor, adjust as necessary
 
             microphone.connect(bandPassFilter);
             bandPassFilter.connect(analyser);
-            analyser.connect(javascriptNode);
             javascriptNode.connect(audioContext.destination);
 
             // Update frequency labels based on sample rate
