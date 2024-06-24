@@ -1,3 +1,33 @@
+window.onload = () => {
+    const button = document.getElementById('button');
+    button.addEventListener('click', () => {
+      if (button.style['animation-name'] === 'flash') {
+        recognition.stop();
+        button.style['animation-name'] = 'none';
+        button.innerText = 'Press to detect voice';
+        content.innerText = '';
+      } else {
+        button.style['animation-name'] = 'flash';
+        button.innerText = 'Press to Stop';
+        recognition.start();
+      }
+    });
+
+    const content = document.getElementById('content');
+
+    const recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    //recognition.lang = "en-US"; Set for English only
+    recognition.onresult = function (event) {
+      let result = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        result += event.results[i][0].transcript;
+      }
+      content.innerText = result;
+    };
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -403,7 +433,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const threshold = parseInt(localStorage.getItem('audioThreshold')) || 0;
                 const snrThreshold = parseInt(localStorage.getItem('snrThreshold')) || 0;
-                if (filteredAverage > threshold && snr > snrThreshold) {
+                const content = document.getElementById('content');
+                if (filteredAverage > threshold && snr > snrThreshold && content.innerText.toLowerCase()==="jump" || filteredAverage > threshold && snr > snrThreshold && content.innerText.toLowerCase()==="跳"){
                     jump();
                 }
             };
