@@ -5,6 +5,7 @@ let path = [];
 let carImage = new Image();
 carImage.src = "car.png"; // Make sure you have a car.png image in the same directory
 let speed = 5;
+let carSize = 30;
 
 canvas.addEventListener("mousedown", (e) => {
   isDrawing = true;
@@ -42,10 +43,20 @@ document.getElementById("speedSlider").addEventListener("input", (e) => {
   speed = 11 - e.target.value; // Adjust speed (higher value = slower speed)
 });
 
+document.getElementById("sizeSlider").addEventListener("input", (e) => {
+  carSize = e.target.value; // Adjust car size
+});
+
 function moveCar(index) {
   if (index < path.length) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(carImage, path[index].x - 15, path[index].y - 10, 30, 20);
+    ctx.drawImage(
+      carImage,
+      path[index].x - carSize / 2,
+      path[index].y - carSize / 2,
+      carSize,
+      carSize * 0.66
+    );
     setTimeout(() => moveCar(index + 1), speed * 10); // Adjust speed here
   } else {
     redrawPath(); // Show the path again after play
