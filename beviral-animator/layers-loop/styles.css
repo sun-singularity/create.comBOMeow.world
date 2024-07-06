@@ -1,0 +1,58 @@
+body {
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+canvas {
+  border: 1px solid black;
+  margin-right: 20px;
+}
+
+.controls {
+  max-width: 300px;
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.controls h3 {
+  margin-top: 0;
+}
+
+.layer {
+  margin-bottom: 15px;
+}
+
+.layer-header {
+  cursor: pointer;
+  background-color: #f0f0f0;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+.layer-content {
+  display: none;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+
+.layer-content label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.layer-content input[type="number"],
+.layer-content input[type="range"],
+.layer-content select {
+  width: 100%;
+  padding: 5px;
+  margin-bottom: 10px;
+}
